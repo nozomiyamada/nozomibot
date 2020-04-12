@@ -41,7 +41,7 @@ Line ID : @834majrs
     
     ![accent](https://user-images.githubusercontent.com/44984892/79058951-75211200-7c9e-11ea-8481-0b92ef6016a8.png)
     
-    ![yubiningyo](https://user-images.githubusercontent.com/44984892/79059193-4193b700-7ca1-11ea-931b-d52121fec7d2.png)
+    ゆ/びに\んぎょう = ![yubiningyo](https://user-images.githubusercontent.com/44984892/79059193-4193b700-7ca1-11ea-931b-d52121fec7d2.png)
 
 
 6. wikipedia searcher
