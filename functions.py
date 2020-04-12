@@ -7,12 +7,6 @@ from JapaneseCharacterTypes import JapaneseCharacterTypes as Type
 import enum
 
 ###### text processing ######
-
-class JapaneseCharacterTypes(enum.Enum):
-    NOT_JAPANESE = -1
-    HIRAGANA = 0 
-    KATAKANA = 1 
-    KANJI = 2
     
 def japanese_type_of(char: str) -> Type:
     if 'ア' <= char <= 'ヶ':
