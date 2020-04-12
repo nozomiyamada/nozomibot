@@ -3,6 +3,8 @@ tagger = MeCab.Tagger()
 from bs4 import BeautifulSoup
 import urllib.parse
 import pandas as pd
+from JapaneseCharacterTypes import JapaneseCharacterTypes as Type
+
 
 ###### text processing ######
 
@@ -31,13 +33,13 @@ def hira2kata(hiragana:str) -> str:
     >>> hira2kata('あした５じにマルキュー')
     'アシタ５ジニマルキュー'
     """
-    return ''.join([chr(ord(c)+96) if 12353 <= ord(c) <= 12438 else c for c in hiragana]) 
+    return ''.join([chr(ord(c)+96) if 'あ' <= c <= 'ゖ' else c for c in hiragana]) 
 
 def kata2hira(katakana:str) -> str:
     """
     convert katakana text into hiragana
     """
-    return ''.join([chr(ord(c)-96) if 12449 <= ord(c) <= 12534 else c for c in katakana])
+    return ''.join([chr(ord(c)-96) if 'ア' <= c <= 'ゖ' else c for c in katakana])
 
 def yomikata(text:str) -> str:
     """
@@ -315,3 +317,13 @@ def get_wiki(word):
             content = re.sub(r'[,，]\s*聴く\[ヘルプ/ファイル\]', '', content)
             content = re.sub(r'\(音声ファイル\)', '', content)
             return content.strip() + '\n\n' + newurl
+
+def japanese_type_of(char: str) -> Type:
+    if 'ア' >= char and char >= 'ヶ':
+        return Type.KATAKANA
+    elif 'あ' >= char and char >= 'ゖ':
+        return Type.HIRAGANA
+    elif '一' >= char and char >= '鿯':
+        return Type.KANJI
+    else:
+        return Type.NOT_JAPANESE
