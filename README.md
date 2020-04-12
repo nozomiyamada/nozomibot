@@ -40,6 +40,9 @@ Line ID : @834majrs
     > เช่น "accent 人形"
     
     ![accent](https://user-images.githubusercontent.com/44984892/79058951-75211200-7c9e-11ea-8481-0b92ef6016a8.png)
+    
+    ![yubiningyo](https://user-images.githubusercontent.com/44984892/79059193-4193b700-7ca1-11ea-931b-d52121fec7d2.png)
+
 
 6. wikipedia searcher
     > พิมพ์คำว่า "วิกิ" "wiki" หรือ "ウィキ" ไว้หน้าคำศัพท์ภาษาญี่ปุ่น แล้วกดส่ง ระบบจะค้นหาใน Wikipedia Japan และแสดงย่อหน้าแรก
