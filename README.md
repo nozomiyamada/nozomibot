@@ -2,6 +2,8 @@
 
 Linebot สำหรับผู้เรียนภาษาญี่ปุ่น
 
+written in Python 3.7 (flask) and MySQL (AWS RDS), deployed to [heroku](https://www.heroku.com)
+
 ![834majrs](https://user-images.githubusercontent.com/44984892/79058885-92a1ac00-7c9d-11ea-8600-6ed00def18ca.png)
 
 Line ID : @834majrs
@@ -42,6 +44,8 @@ Line ID : @834majrs
     ![accent](https://user-images.githubusercontent.com/44984892/79058951-75211200-7c9e-11ea-8481-0b92ef6016a8.png)
     
     ゆ/びに\んぎょう = ![yubiningyo](https://user-images.githubusercontent.com/44984892/79059193-4193b700-7ca1-11ea-931b-d52121fec7d2.png)
+    
+    accent system ของภาษาญี่ปุ่น [link (TUFS)](http://www.coelang.tufs.ac.jp/ja/th/pmod/practical/01-08-01.php)
 
 
 6. wikipedia searcher
