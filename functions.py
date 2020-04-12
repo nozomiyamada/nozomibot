@@ -9,11 +9,12 @@ import enum
 ###### text processing ######
     
 def japanese_type_of(char: str) -> Type:
+    p = re.compile('[\u2E80-\u2FDF\u3005-\u3007\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\U00020000-\U0002EBEF]')
     if 'ア' <= char <= 'ヶ':
         return Type.KATAKANA
     elif 'あ' <= char <= 'ゖ':
         return Type.HIRAGANA
-    elif '一' <= char >= '鿯':
+    elif re.match(p, char):
         return Type.KANJI
     else:
         return Type.NOT_JAPANESE
