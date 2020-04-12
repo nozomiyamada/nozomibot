@@ -27,7 +27,7 @@ Line ID : @834majrs
     >
     > เช่น "ตัด 昨日の夜は何を食べましたか"
     
-    ![token](https://user-images.githubusercontent.com/44984892/79058955-76ead580-7c9e-11ea-8c96-9096363ae9a5.png)
+    ![token](https://user-images.githubusercontent.com/44984892/79066334-5a23c180-7ce1-11ea-8cfd-b3606a13e5ca.png)
 
 4. conjugation mode
     > พิมพ์คำว่า "ผัน" "conj" หรือ "活用" ไว้หน้าศัพท์ที่เป็นกิริยาหรือคำคุณศัพท์ภาษาญี่ปุ่น แล้วกดส่ง ระบบจะผันคำกิริยาหรือคุณศัพท์เป็นรูปแบบต่างๆตามหลักไวยากรณ์ 
