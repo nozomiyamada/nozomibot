@@ -2,6 +2,7 @@ import MeCab, re, requests, random, json
 tagger = MeCab.Tagger()
 from bs4 import BeautifulSoup
 import urllib.parse
+import pandas as pd
 
 ###### text processing ######
 
@@ -263,6 +264,22 @@ def search_kanji(dic, kanji:str):
     kanken = content['kanken']
     reply = f"onyomi: {on}\nkunyomi: {kun}\nความหมาย:\n{imi}\nbushu: {bushu}\nkanken level: {kanken}"
     return reply
+
+##### accent #####
+def get_accent(word):
+    df = pd.read_csv('accent.csv', encoding='utf8')
+    result = df[df.kanji.str.contains(word, na=False) | df.yomi.str.contains(word, na=False) | df.english.str.contains(word, na=False, case=False)]
+    if len(result) == 0:
+        return 'หาไม่เจอในดิกครับ\n(พิมพ์ help จะแสดงวิธีใช้)'
+    else:
+        text = ''
+        for i, row in result.iterrows():
+            word = 'word: '
+            for column in row[['kanji','yomi','english']]:
+                if type(column) == str:
+                    word += column + ' '
+            text += word.strip() + '\n' + 'accent: ' + row['accent'] + '\n\n'
+    return text.strip()
 
 
 ##### wiki #####
