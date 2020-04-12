@@ -4,9 +4,25 @@ from bs4 import BeautifulSoup
 import urllib.parse
 import pandas as pd
 from JapaneseCharacterTypes import JapaneseCharacterTypes as Type
-
+import enum
 
 ###### text processing ######
+
+class JapaneseCharacterTypes(enum.Enum):
+    NOT_JAPANESE = -1
+    HIRAGANA = 0 
+    KATAKANA = 1 
+    KANJI = 2
+    
+def japanese_type_of(char: str) -> Type:
+    if 'ア' <= char <= 'ヶ':
+        return Type.KATAKANA
+    elif 'あ' <= char <= 'ゖ':
+        return Type.HIRAGANA
+    elif '一' <= char >= '鿯':
+        return Type.KANJI
+    else:
+        return Type.NOT_JAPANESE
 
 def tokenize(text:str) -> list:
     """
@@ -317,13 +333,3 @@ def get_wiki(word):
             content = re.sub(r'[,，]\s*聴く\[ヘルプ/ファイル\]', '', content)
             content = re.sub(r'\(音声ファイル\)', '', content)
             return content.strip() + '\n\n' + newurl
-
-def japanese_type_of(char: str) -> Type:
-    if 'ア' >= char and char >= 'ヶ':
-        return Type.KATAKANA
-    elif 'あ' >= char and char >= 'ゖ':
-        return Type.HIRAGANA
-    elif '一' >= char and char >= '鿯':
-        return Type.KANJI
-    else:
-        return Type.NOT_JAPANESE
