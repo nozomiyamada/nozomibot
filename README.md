@@ -2,7 +2,7 @@
 
 Linebot สำหรับผู้เรียนภาษาญี่ปุ่น
 
-written in Python 3.7 (flask) and MySQL (AWS RDS), deployed to [heroku](https://www.heroku.com)
+written in `Python 3.7` (flask) and `MySQL` (AWS RDS), deployed to [`heroku`](https://www.heroku.com)
 
 ![834majrs](https://user-images.githubusercontent.com/44984892/79058885-92a1ac00-7c9d-11ea-8600-6ed00def18ca.png)
 
@@ -10,19 +10,19 @@ Line ID : @834majrs
 
 # functions
 
-1. dictionary mode (from JTDic)
+1. dictionary mode (from [JTDic](http://www.jtdic.com/2008/japanese.aspx))
     > พิมพ์คำศัพท์ภาษาญี่ปุ่นหรือคำศัพท์ไทย แล้วกดส่ง ระบบจะหาคำแปลใน JTDic (ไม่ใช่การแปลทั้งประโยค) พิมพ์ได้ทั้งคันจิและฮืรางานะ
     
     ![dic](https://user-images.githubusercontent.com/44984892/79058956-794d2f80-7c9e-11ea-941b-439e322e6b34.png)
 
-2. kanji mode (ประมาณ 3000 ตัว from Goo: https://dictionary.goo.ne.jp/kanji/) 
+2. kanji mode (ประมาณ 3000 ตัว from [Goo](https://dictionary.goo.ne.jp/kanji/) )
     > พิมพ์คำว่า "คันจิ" "kanji" หรือ "漢字" ไว้หน้าคันจิตัวเดียว แล้วกดส่ง ระบบจะแสดงวิธีอ่านและความหมาย
     >
     > เช่น "คันจิ 望"
     
     ![kanji](https://user-images.githubusercontent.com/44984892/79058950-74887b80-7c9e-11ea-9a5d-2e1c3a6d2c80.png)
 
-3. tokenization mode (โดยใช้ MeCab)
+3. tokenization mode (โดยใช้ [`mecab-python3 0.996.5`](https://pypi.org/project/mecab-python3/))
     > พิมพ์คำว่า "ตัด" "token" "切って" หรือ "分けて" ไว้หน้าประโยคภาษาญี่ปุ่น แล้วกดส่ง ระบบจะตัดประโยคยาวๆ เป็นคำศัพท์สั้นๆ พร้อมทั้งอธิบายรูปพจนานุกรมและประเภทคำ 
     >
     > เช่น "ตัด 昨日の夜は何を食べましたか"
