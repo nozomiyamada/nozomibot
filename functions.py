@@ -308,4 +308,4 @@ def japanese_type_of(char: str) -> Type:
     elif '一' >= char and char >= '鿯':
         return Type.KANJI
     else:
-        return Type.NONE_OF_JAPANESE
+        return Type.NOT_JAPANESE
