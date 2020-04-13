@@ -46,6 +46,13 @@ Line ID : @834majrs
     ゆ/びに\んぎょう = ![yubiningyo](https://user-images.githubusercontent.com/44984892/79059193-4193b700-7ca1-11ea-931b-d52121fec7d2.png)
     
     accent system ของภาษาญี่ปุ่น [link (TUFS)](http://www.coelang.tufs.ac.jp/ja/th/pmod/practical/01-08-01.php)
+   
+5. NHK News Web corpus
+    >พิมพ์คำว่า "corpus" "ตัวอย่าง" หรือ "例文" ไว้หน้าคำศัพท์ญี่ปุ่น แล้วกดส่ง ระบบจะแสดงตัวอย่างประโขคที่สุ่มเลือกมาจาก NHK News Web (maximum 5) ค้นหาคำในประโยคเดิม เพราะฉะนั้น กริยาหรือคำคุณศัพท์ที่ผันรูปแล้วอาจจะหายากนิดหน่อย
+    >
+    > เช่น "ตัวอย่าง 注目
+    
+    ![reibun](https://user-images.githubusercontent.com/44984892/79146927-58472480-7ded-11ea-9991-50217857c553.png)
 
 
 6. wikipedia searcher
