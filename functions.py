@@ -50,16 +50,56 @@ def kata2hira(katakana:str) -> str:
     """
     convert katakana text into hiragana
     """
-    return ''.join([chr(ord(c)-96) if 'ア' <= c <= 'ゖ' else c for c in katakana])
+    return ''.join([chr(ord(c)-96) if 'ア' <= c <= 'ヶ' else c for c in katakana])
 
-def yomikata(text:str) -> str:
+def yomikata(text:str, phonetic=False) -> str:
     """
     convert JP text into hiragana text
 
     >>> yomikata('心掛け')
     こころがけ
     """
-    return ''.join([kata2hira(token[-2]) for token in tokenize(text)]).replace('*', '')
+    if not phonetic:
+        return ''.join([kata2hira(token[-2]) if len(token) == 10 else token[0] for token in tokenize(text)]).strip()
+    else:
+        result = ''
+        for token in tokenize(text):
+            if len(token) == 10:
+                if token[-2] in 'ハヘヲ':
+                    result += kata2hira(token[-1])
+                else:
+                    result += kata2hira(token[-2])
+            else:
+                result += f' {token[0]} '
+        return result.replace('*', ' ').strip()
+
+def romanize(text:str) -> str:
+    """
+    romanize JP text (Hepburn Style)
+
+    >>> romanize('勝手に喋る')
+    kattenishaberu
+    """
+    chars = pd.read_csv('roman.csv', index_col='hiragana')
+    text = yomikata(text, phonetic=True)
+    result = ''
+    while len(text) > 0:
+        if len(text) >= 2 and text[1] in 'ぁぃぅぇぉゃゅょゎ':
+            result += chars.loc[text[:2]].hepburn
+            text = text[2:]
+        elif text[0] == 'っ':
+            result += 'ß'
+            text = text[1:]
+        elif text[0] == 'ー':
+            text = text[1:]
+        else:
+            try:
+                result += chars.loc[text[:1]].hepburn
+            except:
+                result += text[:1]
+            text = text[1:]
+    result = re.sub(r'ß(\w)', r'\1\1', result)
+    return result
 
 def shift_dan(gyou:str, n:int) -> str:
     """
@@ -307,7 +347,7 @@ def get_wiki(word):
     url = f'https://ja.wikipedia.org/wiki/{word}'
     response = requests.get(url)
     if response.status_code != 200:
-        return random.choice(['หาไม่เจออ่า','พิมพ์ผิดป่าว','ไม่มีครัช'])
+        return 'หาไม่เจอในดิกครับ\n(พิมพ์ help จะแสดงวิธีใช้)'
     else:
         html = response.text
         soup = BeautifulSoup(html, 'html.parser')
