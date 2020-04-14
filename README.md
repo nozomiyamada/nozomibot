@@ -52,23 +52,29 @@ Line ID : @834majrs
 ゆ/びに\んぎょう = ![yubiningyo](https://user-images.githubusercontent.com/44984892/79059193-4193b700-7ca1-11ea-931b-d52121fec7d2.png)
     
 accent system ของภาษาญี่ปุ่น [link (TUFS)](http://www.coelang.tufs.ac.jp/ja/th/pmod/practical/01-08-01.php)
-   
-## 6. [NHK News Web](https://www3.nhk.or.jp/news/) corpus
+
+## 6. Romanization
+พิมพ์คำว่า **โรมัน**, **roman** หรือ **ローマ字** ไว้หน้าประโยคภาษาญี่ปุ่น แล้วกดส่ง ระบบจะเปลี่ยนประโยคเป็นอักษรโรมัน
+
+แนะนำไม่ให้ใช้คันจิเยอะ เพราะอาจจะเปลี่ยนผิดก็ได้
+
+![roman](https://user-images.githubusercontent.com/44984892/79187171-c9b2c180-7e45-11ea-921d-87be6e269d59.png)
+
+## 7. [NHK News Web](https://www3.nhk.or.jp/news/) corpus
 พิมพ์คำว่า **corpus**, **ตัวอย่าง** หรือ **例文** ไว้หน้าคำศัพท์ญี่ปุ่น แล้วกดส่ง ระบบจะแสดงตัวอย่างประโขคที่สุ่มเลือกมาจาก NHK News Web (maximum 5) ค้นหาคำในประโยคเดิม เพราะฉะนั้น กริยาหรือคำคุณศัพท์ที่ผันรูปแล้วอาจจะหายากนิดหน่อย
 
 เช่น "ตัวอย่าง 注目"
     
 ![reibun](https://user-images.githubusercontent.com/44984892/79146927-58472480-7ded-11ea-9991-50217857c553.png)
 
-
-## 7. wikipedia searcher
+## 8. Wikipedia searcher
 พิมพ์คำว่า **วิกิ**, **wiki** หรือ **ウィキ** ไว้หน้าคำศัพท์ภาษาญี่ปุ่น แล้วกดส่ง ระบบจะค้นหาใน Wikipedia Japan และแสดงย่อหน้าแรก
 
 เช่น "วิกิ AKB48"
     
 ![wiki](https://user-images.githubusercontent.com/44984892/79066428-09609880-7ce2-11ea-8d47-6787f5363ed2.png)
 
-## 8. random NHK web easy article
+## 9. random NHK News Easy article
 (ประมาณ 6000 บทความ https://www3.nhk.or.jp/news/easy/)
 
 พิมพ์คำว่า **NHK** แล้วกดส่ง ระบบจะสุ่มเลือกบทความจาก NHK web easy backnumbers (2013-2020)
