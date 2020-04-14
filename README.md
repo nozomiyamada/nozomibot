@@ -10,12 +10,12 @@ Line ID : @834majrs
 
 # functions
 
-## 1. dictionary mode from [JTDic](http://www.jtdic.com/2008/japanese.aspx)
+## 1. dictionary mode from [JTDic](http://www.jtdic.com/2008/japanese.aspx) (basic~advanced)
 พิมพ์คำศัพท์ภาษาญี่ปุ่นหรือคำศัพท์ไทย แล้วกดส่ง ระบบจะหาคำแปลใน JTDic (ไม่ใช่การแปลทั้งประโยค) พิมพ์ได้ทั้งคันจิและฮืรางานะ
     
 ![dic](https://user-images.githubusercontent.com/44984892/79066435-15e4f100-7ce2-11ea-9355-3434fdd88ffb.png)
 
-## 2. kanji mode
+## 2. kanji mode (intermediate~advanced)
 (ประมาณ 3000 ตัว from [Goo](https://dictionary.goo.ne.jp/kanji/) )
 
 พิมพ์คำว่า **คันจิ**, **kanji** หรือ **漢字** ไว้หน้าคันจิตัวเดียว แล้วกดส่ง ระบบจะแสดงวิธีอ่านและความหมาย
@@ -24,7 +24,7 @@ Line ID : @834majrs
     
 ![kanji](https://user-images.githubusercontent.com/44984892/79066450-2f863880-7ce2-11ea-8c20-39dc224820ef.png)
 
-## 3. tokenization mode
+## 3. tokenization mode (basic)
 (โดยใช้ [`mecab-python3 0.996.5`](https://pypi.org/project/mecab-python3/))
 
 พิมพ์คำว่า **ตัด**, **token**, **切って** หรือ **分けて** ไว้หน้าประโยคภาษาญี่ปุ่น แล้วกดส่ง ระบบจะตัดประโยคยาวๆ เป็นคำศัพท์สั้นๆ พร้อมทั้งอธิบายวิธีอ่าน รูปพจนานุกรมและประเภทคำ 
@@ -33,14 +33,14 @@ Line ID : @834majrs
     
 ![token](https://user-images.githubusercontent.com/44984892/79066334-5a23c180-7ce1-11ea-8cfd-b3606a13e5ca.png)
 
-## 4. conjugation mode
+## 4. conjugation mode (basic)
 พิมพ์คำว่า **ผัน**, **conj** หรือ **活用** ไว้หน้าศัพท์ที่เป็นกิริยาหรือคำคุณศัพท์ภาษาญี่ปุ่น แล้วกดส่ง ระบบจะผันคำกิริยาหรือคุณศัพท์เป็นรูปแบบต่างๆตามหลักไวยากรณ์ 
 
 เช่น "ผัน 行く"
     
 ![conj](https://user-images.githubusercontent.com/44984892/79066398-d5857300-7ce1-11ea-92b6-8abd042bea75.png)
 
-## 5. accent mode
+## 5. accent mode (intermediate~advanced)
 (ประมาณ 6000 คำ from https://accent.u-biq.org/)
 
 พิมพ์คำว่า **accent** หรือ **アクセント** ไว้หน้าคำศัพท์ภาษาญี่ปุ่น แล้วกดส่ง ระบบจะแสดง accent ของคำนั้น
@@ -53,28 +53,28 @@ Line ID : @834majrs
     
 accent system ของภาษาญี่ปุ่น [link (TUFS)](http://www.coelang.tufs.ac.jp/ja/th/pmod/practical/01-08-01.php)
 
-## 6. romanization mode
+## 6. romanization mode (basic)
 พิมพ์คำว่า **โรมัน**, **roman** หรือ **ローマ字** ไว้หน้าประโยคภาษาญี่ปุ่น แล้วกดส่ง ระบบจะเปลี่ยนประโยคเป็นอักษรโรมัน
 
 แนะนำไม่ให้ใช้คันจิเยอะ เพราะอาจจะเปลี่ยนผิดก็ได้
 
 ![roman](https://user-images.githubusercontent.com/44984892/79187171-c9b2c180-7e45-11ea-921d-87be6e269d59.png)
 
-## 7. [NHK News Web](https://www3.nhk.or.jp/news/) corpus
+## 7. [NHK News Web](https://www3.nhk.or.jp/news/) corpus (intermediate~advanced)
 พิมพ์คำว่า **corpus**, **ตัวอย่าง** หรือ **例文** ไว้หน้าคำศัพท์ญี่ปุ่น แล้วกดส่ง ระบบจะแสดงตัวอย่างประโขคที่สุ่มเลือกมาจาก NHK News Web (maximum 5) ค้นหาคำในประโยคเดิม เพราะฉะนั้น กริยาหรือคำคุณศัพท์ที่ผันรูปแล้วอาจจะหายากนิดหน่อย
 
 เช่น "ตัวอย่าง 注目"
     
 ![reibun](https://user-images.githubusercontent.com/44984892/79146927-58472480-7ded-11ea-9991-50217857c553.png)
 
-## 8. Wikipedia searcher
+## 8. Wikipedia searcher (intermediate~advanced)
 พิมพ์คำว่า **วิกิ**, **wiki** หรือ **ウィキ** ไว้หน้าคำศัพท์ภาษาญี่ปุ่น แล้วกดส่ง ระบบจะค้นหาใน Wikipedia Japan และแสดงย่อหน้าแรก
 
 เช่น "วิกิ AKB48"
     
 ![wiki](https://user-images.githubusercontent.com/44984892/79066428-09609880-7ce2-11ea-8d47-6787f5363ed2.png)
 
-## 9. random NHK News Easy article
+## 9. random NHK News Easy article (basic~intermediate)
 (ประมาณ 6000 บทความ https://www3.nhk.or.jp/news/easy/)
 
 พิมพ์คำว่า **NHK** แล้วกดส่ง ระบบจะสุ่มเลือกบทความจาก NHK web easy backnumbers (2013-2020)
