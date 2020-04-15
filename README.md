@@ -39,10 +39,10 @@ much linguistic information & corpus search
 ## 4. romanization mode (basic)
 พิมพ์คำว่า **โรมัน**, **roman** หรือ **ローマ字** ไว้หน้าประโยคภาษาญี่ปุ่น แล้วกดส่ง ระบบจะเปลี่ยนประโยคเป็นอักษรโรมันแบบ Hepburn ([คำอธิบายโดยราชบัณฑิต](https://github.com/nozomiyamada/nozomibot/blob/master/japanese_romanization.pdf)) ซึ่งสะกดคล้ายกับภาษาอังกฤษและใช้คนละตัวต่อ allophone เช่น
 
-- さ/sa　し/shi　す/su　せ/se　そ/so
-- た/ta　ち/chi　つ/tsu　て/te　と/te
-- ほんば/homba　ほんや/honya
-- かっさい/kassai まった/matta　まっちゃ/matcha
+- さ/sa　し/shi　す/su　せ/se　そ/so　(พยัญชนะหน้าสระ i มักจะ palatalize)
+- た/ta　ち/chi　つ/tsu　て/te　と/te　(พยัญชนะ t หน้าสระ u จะ dentalize เป็น ts)
+- ほんば/homba　ほんや/honya　(พยัญชนะ n จะ assimilate)
+- かっさい/kassai　まった/matta　まっちゃ/matcha　(っ เป็น consonant gemination)
 
 แนะนำไม่ให้ใช้คันจิเยอะ เพราะอาจจะเปลี่ยนผิดก็ได้
 
