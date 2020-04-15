@@ -21,8 +21,8 @@ Line ID : `@834majrs`
 
 ## corpus search
 7. [random NHK News Easy (สุ่มเลือกบทความ)](#7-random-nhk-news-easy-article)
-8. [examples from NHK News Web corpus(การค้นหาตัวอย่างประโยค)](#8-examples-from-nhk-news-web-corpus)
-9. [examples from Twitter corpus(การค้นหาตัวอย่างประโยค)](#9-examples-from-twitter-corpus)
+8. [examples from NHK News Web corpus (การค้นหาตัวอย่างประโยค)](#8-examples-from-nhk-news-web-corpus)
+9. [examples from Twitter corpus (การค้นหาตัวอย่างประโยค)](#9-examples-from-twitter-corpus)
 
 ## extra
 10. [Wikipedia searcher](#10-wikipedia-searcher)
