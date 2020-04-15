@@ -55,6 +55,19 @@ Line ID : `@834majrs`
 
 ![conj](https://user-images.githubusercontent.com/44984892/79066398-d5857300-7ce1-11ea-92b6-8abd042bea75.png)
 
+||||
+|:-:|:-:|:-:|
+|ない形|nai form|รูปปฏิเสธ|
+|なかった形|nakatta form|รูปปฏิเสธ อดีต|
+|ます形|masu form|คำสร้อย (สุภาพ)|
+|辞書(じしょ)形|dic form / lemma|รูปพจนานุกรม|
+|て形|te form|รูปที่เชื่อมกับคำต่างๆ|
+|た形|ta form|รูปอดีต|
+|ば形|ba form|รูปเงื่อนไข|
+|命令(めいれい)形|imperative form|รูปคำสั่ง|
+|意志(いし)形|volitional form|จะ เถอะ|
+
+
 
 ## 4. romanization mode
 (basic)
