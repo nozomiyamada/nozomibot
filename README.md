@@ -6,7 +6,7 @@ written in `Python 3.7 + Flask 1.1` and `MySQL` (AWS RDS), deployed to [`heroku`
 
 ![834majrs](https://user-images.githubusercontent.com/44984892/79058885-92a1ac00-7c9d-11ea-8600-6ed00def18ca.png)
 
-Line ID : @834majrs
+Line ID : `@834majrs`
 
 
 # features
