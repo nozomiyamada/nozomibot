@@ -72,8 +72,16 @@ much linguistic information & corpus search
 ![accent](https://user-images.githubusercontent.com/44984892/79066417-f4840500-7ce1-11ea-8786-038f2fb866ee.png)
     
 ゆ/びに\んぎょう = ![yubiningyo](https://user-images.githubusercontent.com/44984892/79059193-4193b700-7ca1-11ea-931b-d52121fec7d2.png)
-    
-accent system ของภาษาญี่ปุ่น [link (TUFS)](http://www.coelang.tufs.ac.jp/ja/th/pmod/practical/01-08-01.php)
+
+pitch accent ของภาษาถิ่นโตเกียวมีลักษณะดังนี้
+
+- เสียงจะขึ้นลง **ระหว่างพยางค์** กล่าวคือ การขึ้นลงจะเกิดตราบใดที่มีอย่างน้อย 2 พยางค์ ไม่มีวรรณยุคต์แบบภาษาไทย ซึ่งมีการขึ้นลงของเสียงในหนึ่งพยางค์
+- ตัวแรกกับตัวที่สอง ความสูงต้องต่างกัน (ตัวที่สองต้องขึ้นหรือลง)
+- ในคำหนึ่ง ถ้าเสียงลงแล้ว ไม่ขึ้นอีก
+- accent ของคำประสมไม่เหมือนกับคำที่เป็นส่วนประกอบ เช่น ち\ば กับ ち/ばけ\ん
+
+อ่านเพิ่มเติม
+[link (TUFS)](http://www.coelang.tufs.ac.jp/ja/th/pmod/practical/01-08-01.php)
 
 
 ## 8. [NHK News Web](https://www3.nhk.or.jp/news/) corpus (intermediate~advanced)
