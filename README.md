@@ -53,13 +53,13 @@ Line ID : `@834majrs`
 
 เช่น "ผัน 行く"
 
-![conj](https://user-images.githubusercontent.com/44984892/79066398-d5857300-7ce1-11ea-92b6-8abd042bea75.png)
+![conj](https://user-images.githubusercontent.com/44984892/79415469-b3d50600-7fd7-11ea-910a-70e4a7c22242.png)
 
-||||
+|JP|EN|TH|
 |:-:|:-:|:-:|
 |ない形|nai form|รูปปฏิเสธ|
 |なかった形|nakatta form|รูปปฏิเสธ อดีต|
-|ます形|masu form|คำสร้อย (สุภาพ)|
+|ます形|masu form|คำสร้อย (รูปสุภาพ)|
 |辞書(じしょ)形|dic form / lemma|รูปพจนานุกรม|
 |て形|te form|รูปที่เชื่อมกับคำต่างๆ|
 |た形|ta form|รูปอดีต|
