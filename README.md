@@ -65,7 +65,7 @@ Line ID : `@834majrs`
 |た形|ta form|รูปอดีต|
 |ば形|ba form|รูปเงื่อนไข|
 |命令(めいれい)形|imperative form|รูปคำสั่ง|
-|意志(いし)形|volitional form|จะ เถอะ|
+|意向(いこう)形|volitional form|จะ เถอะ|
 
 
 
