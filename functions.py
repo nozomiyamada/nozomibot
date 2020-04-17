@@ -58,17 +58,20 @@ def yomikata(text:str, phonetic=False) -> str:
 
     >>> yomikata('心掛け')
     こころがけ
+
+    >>> yomikata('私は本をNHKへ返す', phonetic=True)
+    わたしわほんを NHK えかえす
     """
     if not phonetic:
         return ''.join([kata2hira(token[-2]) if len(token) == 10 else token[0] for token in tokenize(text)]).strip()
     else:
         result = ''
         for token in tokenize(text):
-            if len(token) == 10:
+            if len(token) == 10:  # len(token) == 10 : not an alnum, punctuation
                 if token[-2] in 'ハヘヲ':
-                    result += kata2hira(token[-1])
+                    result += kata2hira(token[-1]) # token[-1] = phone
                 else:
-                    result += kata2hira(token[-2])
+                    result += kata2hira(token[-2]) # token[-2] = phono 
             else:
                 result += f' {token[0]} '
         return result.replace('*', ' ').strip()
@@ -88,7 +91,7 @@ def romanize(text:str) -> str:
             result += chars.loc[text[:2]].hepburn
             text = text[2:]
         elif text[0] == 'っ':
-            result += 'ß'
+            result += 'ß' # temp char for っ
             text = text[1:]
         elif text[0] == 'ー':
             text = text[1:]
@@ -98,7 +101,10 @@ def romanize(text:str) -> str:
             except:
                 result += text[:1]
             text = text[1:]
-    result = re.sub(r'ß(\w)', r'\1\1', result)
+    result = re.sub(r'ß(\w)', r'\1\1', result) # substituted by following consonant
+    result = re.sub(r'n([mbp])', r'm\1', result) # bilabial assimilation
+    result = re.sub(r'ou$', 'o', result) # final ou -> o  e.g. SATO
+    result = result.replace('cch', 'tch') # イッチョウ -> itcho
     return result
 
 def shift_dan(gyou:str, n:int) -> str:
@@ -168,6 +174,7 @@ def verb_conj(lemma:str, conjtype:str):
     行く, 五段・カ行促音 >>> ['行かない', '行かなかった',...]
     """
     group = conjtype[:2] # conjugation = 五段・カ行, 一段
+    pot = None
     
     if group == 'サ変' or lemma == 'する':
         nai = 'しない'
@@ -194,22 +201,25 @@ def verb_conj(lemma:str, conjtype:str):
         vol = 'こよう'
     
     elif group == '一段' or lemma == 'いる':
-        stem = lemma[:-1]  # e.g. 食べる -> 食べ
+        if lemma.endswith('ずる'):
+            stem = lemma[:-2] + 'じ'  # e.g. 信ずる -> 信じ
+            base = lemma
+            con = lemma[:-1] + 'れば'
+        else:
+            stem = lemma[:-1]
+            base = lemma
+            con = stem + 'れば'
         nai = stem +  'ない'
         nakatta = stem + 'なかった'
         masu = stem + 'ます'
-        base = stem + 'る'
         te = stem + 'て'
         ta = stem + 'た'
         imp = stem + 'ろ'
-        con = stem + 'れば'
-        pot = stem + 'られる'
         vol = stem + 'よう'
     
     elif group == '五段':
         gyou = kata2hira(conjtype[3])  # e.g. 五段・カ行　-> か, convert into ア if ワ
         stem = lemma[:-1]  # e.g. 行く -> 行, つながる -> つなが
-        
         # aru
         if lemma in ['ある','有る','在る']:
             nai = 'ない'
@@ -221,7 +231,6 @@ def verb_conj(lemma:str, conjtype:str):
             # wa gyou -> a gyou
             if gyou == 'わ': 
                 gyou = 'あ'
-            pot = stem + shift_dan(gyou, 3) + 'る'
         masu = masuform(lemma, conjtype)
         base = lemma
         te = teform(base)
@@ -230,14 +239,25 @@ def verb_conj(lemma:str, conjtype:str):
         con = stem + shift_dan(gyou, 3) + 'ば'
         vol = stem + shift_dan(gyou, 4) + 'う'
     
-    return f'ない形:　　 {nai}\nなかった形: {nakatta}\nます形:　　 {masu}\n辞書形:　　 {base}\nて形:　　　 {te}\nた形:　　　 {ta}\nば形:　　　 {con}\n命令形:　　 {imp}\n可能形:　　 {pot}\n意志形:　　 {vol}' 
+    if pot != None:
+        return [nai, nakatta, masu, base, te, ta, con, pot, imp, vol]
+        #return f'ない形:　　 {nai}\nなかった形: {nakatta}\nます形:　　 {masu}\n辞書形:　　 {base}\nて形:　　　 {te}\nた形:　　　 {ta}\nば形:　　　 {con}\n可能形:　　 {pot}\n命令形:　　 {imp}\n意向形:　　 {vol}'
+    else:
+        return [nai, nakatta, masu, base, te, ta, con, imp, vol]
+        #return f'ない形:　　 {nai}\nなかった形: {nakatta}\nます形:　　 {masu}\n辞書形:　　 {base}\nて形:　　　 {te}\nた形:　　　 {ta}\nば形:　　　 {con}\n命令形:　　 {imp}\n意向形:　　 {vol}'
 
 
 def adj_conj(lemma:str):
     """
     nai, nakatta, desu, base, te, ta, conditional, adverb : 8
     """
-    stem = lemma[:-1]
+    if lemma == 'いい':
+        stem = 'よ'
+        desu = 'いいです'
+    else:
+        stem = lemma[:-1]
+        desu = stem + 'いです'
+        
     if lemma == 'ない':
         nai = 'ない'
         nakatta = 'なかった'
@@ -247,13 +267,12 @@ def adj_conj(lemma:str):
     else:    
         nai = stem + 'くない'
         nakatta = stem + 'くなかった'
-    desu = stem + 'いです'
-    base = lemma
+    
     te = stem + 'くて'
     ta = stem + 'かった'
     con = stem + 'ければ'
     adv = stem + 'く'
-    return f'ない形:　　 {nai}\nなかった形: {nakatta}\nです形:　　 {desu}\n辞書形:　　 {base}\nて形:　　　 {te}\nた形:　　　 {ta}\nば形:　　　 {con}\n副詞化:　　 {adv}' 
+    return f'ない形:　　 {nai}\nなかった形: {nakatta}\nです形:　　 {desu}\n辞書形:　　 {lemma}\nて形:　　　 {te}\nた形:　　　 {ta}\nば形:　　　 {con}\n副詞化:　　 {adv}' 
 
 ##### kanji mode functions #####
 
