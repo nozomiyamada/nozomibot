@@ -44,7 +44,7 @@ Line ID : `@834majrs`
 
 เช่น "ตัด 昨日の夜は何を食べましたか"
     
-![token](https://user-images.githubusercontent.com/44984892/79066334-5a23c180-7ce1-11ea-8cfd-b3606a13e5ca.png)
+![token](https://user-images.githubusercontent.com/44984892/79700239-867da600-82be-11ea-9aec-6d5ed731d004.png)
 
 ตารางประเภทคำ
 |JP|EN|TH|
