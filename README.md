@@ -54,7 +54,7 @@ Line ID : `@834majrs`
 |形容詞(けいようし)|adjective|คำคุณศัพท์|
 |副詞(ふくし)|adverb|คำวิเศษ|
 |助詞(じょし)|postposition|คำช่าย|
-|助動詞(じょどうし)|auxiliary verb|คำช่ายผันรูป|
+|助動詞(じょどうし)|auxiliary verb|คำช่ายที่ผันรูป|
 |接続詞(せつぞくし)|conjunction|คำเชื่อม|
 |連体詞(れんたいし)|determiner|คำขยายคำนาม|
 |感動詞(かんどうし)|interjection|คำอุทาน|
@@ -106,7 +106,7 @@ Line ID : `@834majrs`
 
 แนะนำไม่ให้ใช้คันจิเยอะ เพราะอาจจะเปลี่ยนผิดก็ได้
 
-![roman](https://user-images.githubusercontent.com/44984892/79286180-020bdb80-7eea-11ea-80ac-b16d4df4ae4e.png)
+![roman](https://user-images.githubusercontent.com/44984892/79700315-04da4800-82bf-11ea-9829-59fba1fee877.png)
 
 
 ## 6. kanji dictionary mode
