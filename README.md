@@ -53,8 +53,8 @@ Line ID : `@834majrs`
 |名詞(めいし)|noun|คำนาม|
 |形容詞(けいようし)|adjective|คำคุณศัพท์|
 |副詞(ふくし)|adverb|คำวิเศษ|
-|助詞(じょし)|postposition|คำช่าย|
-|助動詞(じょどうし)|auxiliary verb|คำช่ายที่ผันรูป|
+|助詞(じょし)|postposition|คำช่วย|
+|助動詞(じょどうし)|auxiliary verb|คำช่วยที่ผันรูป|
 |接続詞(せつぞくし)|conjunction|คำเชื่อม|
 |連体詞(れんたいし)|determiner|คำขยายคำนาม|
 |感動詞(かんどうし)|interjection|คำอุทาน|
