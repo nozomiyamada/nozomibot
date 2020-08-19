@@ -1,4 +1,6 @@
-# nozomibot (Last Update: 20 April 2020)
+# nozomibot (Last Update: 19 August 2020)
+
+### NEW!! [Web Application Version](https://nzmbot.herokuapp.com/)
 
 Linebot สำหรับผู้เรียนภาษาญี่ปุ่น
 
