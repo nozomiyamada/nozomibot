@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="container">
+
+	<div class="row my-3">
+    <div class="col-lg-12">
+			<div class="bs-component">
+        <h3>Thank you for your feedback!</h3>
+        <p><i>
+          "{{ text }}"
+        </i></p>
+        <button type="button" onclick="history.back();" class="btn btn-secondary">back</button>
+      </div>
+    </div>
+	</div> 
+
+  
+
+</div>
+
+<script>
+	Array.from(document.getElementsByClassName('nav-item')).forEach(x => x.classList.remove('active'));
+</script>
+
+{% endblock %}

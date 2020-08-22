@@ -1,0 +1,343 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<!-- reset mode -->
+<script>
+	Array.from(document.getElementsByClassName('nav-item')).forEach(x => x.classList.remove('active'));
+	document.getElementById('mode_dictionary').classList.add('active');
+</script>
+
+<!-- title & back button -->
+<div class="container">
+	<div class="row my-3">
+		<div class="col-lg-12">
+			<div class="bs-component">
+				<h3 id="query">{{ text }}</h3>
+				<h4>{{ roman }}</h4>
+				<button type="button" onclick="history.back();" class="btn btn-secondary">back</button>
+				<button type="button" onclick="search_example();" class="btn btn-secondary">search examples</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- conjugation, if any -->
+{% if conj != None %}
+<div class="container">
+	<div class="row my-3">
+		<div class="col-lg-12">
+			<div class="bs-component">
+				{% if conj|length == 10 %} <!-- # verb with potential form -->
+				<h4>การผันรูป (กริยา)</h4>
+					<table class="table table-hover">
+						<tbody id="tbody_conj">
+							<tr class="table-active" id="table_header">
+								<th>辞書形<br>รูปดิก</th>
+								<th>ない形<br>รูป nai</th>
+								<th>なかった形<br>รูป nakatta</th>
+								<th>ます形<br>รูป masu</th>
+								<th>て形<br>รูป te</th>
+								<th>た形<br>รูป ta</th>
+								<th>ば形<br>รูป ba</th>
+								<th>命令形<br>รูปคำสั่ง</th>
+								<th>意向形<br>รูปตั้งใจ</th>
+								<th>可能形<br>รูปสามารถ</th>
+							</tr>
+							<tr id="table_content">
+								<td><a href="/{{ conj[0] }}">{{ conj[0] }}</a></td>
+								<td>{{ conj[1] }}</td>
+								<td>{{ conj[2] }}</td>
+								<td>{{ conj[3] }}</td>
+								<td>{{ conj[4] }}</td>
+								<td>{{ conj[5] }}</td>
+								<td>{{ conj[6] }}</td>
+								<td>{{ conj[7] }}</td>
+								<td>{{ conj[8] }}</td>
+								<td>{{ conj[9] }}</td>
+							</tr>
+						</tbody>
+					</table>
+				{% elif conj|length == 9 %} <!-- # verb w/o potential form -->
+				<h4>การผันรูป (กริยา)</h4>
+					<table class="table table-hover">
+						<tbody id="tbody_conj">
+							<tr class="table-active" id="table_header">
+								<th>辞書形<br>รูปดิก</th>
+								<th>ない形<br>รูป nai</th>
+								<th>なかった形<br>รูป nakatta</th>
+								<th>ます形<br>รูป masu</th>
+								<th>て形<br>รูป te</th>
+								<th>た形<br>รูป ta</th>
+								<th>ば形<br>รูป ba</th>
+								<th>命令形<br>รูปคำสั่ง</th>
+								<th>意向形<br>รูปตั้งใจ</th>
+							</tr>
+							<tr id="table_content">
+								<td><a href="/{{ conj[0] }}">{{ conj[0] }}</a></td>
+								<td>{{ conj[1] }}</td>
+								<td>{{ conj[2] }}</td>
+								<td>{{ conj[3] }}</td>
+								<td>{{ conj[4] }}</td>
+								<td>{{ conj[5] }}</td>
+								<td>{{ conj[6] }}</td>
+								<td>{{ conj[7] }}</td>
+								<td>{{ conj[8] }}</td>
+							</tr>
+						</tbody>
+					</table>
+				{% elif conj|length == 8 %} <!-- # i-adj -->
+				<h4>การผันรูป (i-adj)</h4>
+					<table class="table table-hover">
+						<tbody id="tbody_conj">
+							<tr class="table-active" id="table_header">
+								<th>辞書形<br>รูปดิก</th>
+								<th>ない形<br>รูป nai</th>
+								<th>なかった形<br>รูป nakatta</th>
+								<th>です形<br>รูป desu</th>
+								<th>て形<br>รูป te</th>
+								<th>た形<br>รูป ta</th>
+								<th>ば形<br>รูป ba</th>
+								<th>副詞化<br>adverb</th>
+							</tr>
+							<tr id="table_content">
+								<td><a href="/{{ conj[0] }}">{{ conj[0] }}</a></td>
+								<td>{{ conj[1] }}</td>
+								<td>{{ conj[2] }}</td>
+								<td>{{ conj[3] }}</td>
+								<td>{{ conj[4] }}</td>
+								<td>{{ conj[5] }}</td>
+								<td>{{ conj[6] }}</td>
+								<td>{{ conj[7] }}</td>
+							</tr>
+						</tbody>
+					</table>
+				{% endif %}
+			</div>
+		</div>
+	</div>
+</div>
+
+<script>
+	// for mobile, transpose rows and columns of conjugation table
+	if(MEDIA=="mobile"){
+	let table = document.getElementById('tbody_conj');
+		if(table != null){
+			let table_header = document.getElementById('table_header');
+			let table_content = document.getElementById('table_content');
+			let headers = table_header.getElementsByTagName('th');
+			let contents = table_content.getElementsByTagName('td');
+			table.innerHTML = "";
+			let N = headers.length;
+			for(let i=0; i<N; i++){
+				tr = document.createElement('tr');
+				tr.appendChild(headers[0]);
+				tr.appendChild(contents[0]);
+				document.getElementById('tbody_conj').appendChild(tr);
+			}
+		}
+	}
+</script>
+{% endif %}
+
+
+<!-- accent, if any. [accent, kanji, yomi, english] include nan type -->
+{% if accent|length != 0 %} 
+<div class="container">
+	<div class="row my-3">
+		<div class="col-lg-12">
+			<div class="bs-component">
+				<h4>Accent</h4>
+				<table class="table table-hover">
+					<thead>
+						<tr class="table-active">
+							<th scope="col" style="min-width: 5em;">単語<br>คำ</th>
+							<th scope="col" style="min-width: 4em;">アクセント<br>accent</th>
+							<th scope="col" style="min-width: 5em;">由来<br>ที่มา</th>
+							
+						</tr>
+					</thead>
+					<tbody>
+						{% for r in accent %}
+							<tr>
+								<th>{{ r[1] }}</th>
+								<td>{{ r[0]|safe }}</td> <!-- |safe = HTML insertion -->
+								<td>{{ r[3] }}</td>
+							</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+</div>
+{% endif %}
+
+<!-- TRANSLATION, if any. [[yomi, word, thai],,] -->
+<div class="container">
+	<div class="row my-3">
+		<div class="col-lg-12">
+			<div class="bs-component">
+				<h4>คำที่มีตัวนี้
+					{% if result|length > 10 %}
+						<code onclick="show_hide_dic();">show all</code>
+					{% endif %}
+				</h4>
+				{% if result|length != 0 %} 
+					<table class="table table-hover">
+						<thead>
+							<tr class="table-active">
+								<th scope="col" style="min-width: 4em;">単語<br>คันจิ</th>
+								<th scope="col" style="min-width: 4em;">読み<br>คานะ</th>
+								<th scope="col" style="min-width: 4em;">タイ語<br>ไทย</th>
+							</tr>
+						</thead>
+						<tbody>
+							{% for r in result %}
+								{% if loop.index <= 10 %}
+									<tr>
+										<td>{{ r[1] }}</td>
+										<td>{{ r[0] }}</td>
+										<td>{{ r[2] }}</td>
+									</tr>
+								{% else %}
+									<tr class="hidden_result" style="display: none;">
+										<td>{{ r[1] }}</td>
+										<td>{{ r[0] }}</td>
+										<td>{{ r[2] }}</td>
+									</tr>
+								{% endif %}
+							{% endfor %}
+						</tbody>
+					</table>
+				{% else %}
+					<h3>NO RESULT</h3>
+				{% endif %}
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- rank, if any. ['lemma','rank','lForm','pos','core_pmw'] include nan type -->
+{% if ranks|length != 0 %} 
+<div class="container">
+	<div class="row my-3">
+		<div class="col-lg-12">
+			<div class="bs-component">
+				<h4>อันดับในคลังข้อมูล <a href="https://nlb.ninjal.ac.jp/search/" target="blank_">BCCWJ</a></h4>
+				<table class="table table-hover">
+					<thead>
+						<tr class="table-active">
+							<th scope="col" style="min-width: 5em;">順位<br>อันดับ</th>
+							<th scope="col" style="min-width: 5em;">単語(読み)<br>คำ</th>
+							<th scope="col" style="min-width: 5em;">PoS<br>ประเภทคำ</th>
+							<th scope="col" style="min-width: 5em;">頻度<br>ความถี่ต่อล้านคำ</th>
+						</tr>
+					</thead>
+					<tbody>
+						{% for r in ranks %}
+							<tr>
+								<th>{{ r[1] }}</th>
+								<td>{{ r[0] }}({{ r[2] }})</td>
+								<td>{{ r[3] }}</td>
+								<td>{{ r[4] }}</td>
+							</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+</div>
+{% endif %}
+
+<!-- Kanji, if any. include nan type -->
+{% if kanjis|length != 0 %} 
+<div class="container">
+	<div class="row my-3">
+		<div class="col-lg-12">
+			<div class="bs-component">
+				<h4>Kanji (from <a href="https://www.kanjipedia.jp/" target="blank_">漢字ペディア</a>)</h4>
+				<table class="table table-hover" id="table_kanji">
+					<tbody>
+						<tr class="table-active" id="table_kanji_header">
+							<th style="min-width: 5em;">漢字<br>Kanji</th>
+							<th style="min-width: 5em;">音読み<br>On</th>
+							<th style="min-width: 5em;">訓読み<br>Kun</th>
+							<th style="min-width: 6em;">意味<br>meaning</th>
+						</tr>
+						{% for kanji in kanjis %} <!-- kanjis = [{...}, {...}, ] -->
+						<tr class="table_kanji_content">
+							<td class="font3 vertical"><a href="/{{ kanji['kanji']}}">{{ kanji['kanji'] }}</a></td>
+							<td class="vertical">{{ kanji['on'] }}</td> 
+							<td class="vertical">{{ kanji['kun'] }}</td>
+							<td class="vertical">
+								{% for imi in kanji['imi'] %}
+									{{ imi }}<br>
+								{% endfor %}
+							</td>
+						</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+</div>
+<script>
+	// for mobile, transpose rows and columns of conjugation table
+	if(MEDIA=="mobile"){
+	let table = document.getElementById('table_kanji');
+		if(table != null){
+			let header_row = document.getElementById('table_kanji_header').getElementsByTagName('th');
+			let content_trs = document.getElementsByClassName('table_kanji_content');
+			let tbody_new = document.createElement('tbody');
+			for(content_tr of content_trs){
+				var tds = content_tr.getElementsByTagName('td');
+				for(var i=0; i<4; i++){ // iterate kanji, On, Kun, Imi 
+					var tr = document.createElement('tr');
+					tr.appendChild(header_row[i].cloneNode(true));
+					tr.appendChild(tds[0]);
+					tbody_new.appendChild(tr);
+				}
+			}
+			table.appendChild(tbody_new);
+			document.getElementById('table_kanji_header').remove();
+		}
+	}
+</script>
+{% endif %}
+
+
+<script>
+	function show_hide_dic(){
+		let button = event.target;
+		if(button.innerText=="show all"){
+			Array.from(document.getElementsByClassName('hidden_result')).forEach(x => x.style.display="");
+			button.innerText = "show 10";
+		}else{
+			Array.from(document.getElementsByClassName('hidden_result')).forEach(x => x.style.display="none");
+			button.innerText = "show all";
+		}
+	}
+
+	function search_example(){
+		let query = document.getElementById('query').innerText;
+		let form = document.createElement('form');
+		form.setAttribute('action','/example');
+		form.setAttribute('method','post');
+		form.style.display="none";
+		document.body.appendChild(form);
+		let input1 = document.createElement('input');
+		input1.setAttribute('name', 'text');
+		input1.setAttribute('value', query);
+		let input2 = document.createElement('input');
+		input2.setAttribute('name', 'limit');
+		input2.setAttribute('value', 30);
+		form.appendChild(input1);
+		form.appendChild(input2);
+		form.submit();
+	}
+</script>
+
+
+{% endblock %}

@@ -1,0 +1,36 @@
+.org {color:blue}
+.colorC {color:blue}
+.plc {color:orange}
+.colorL {color:orange}
+.per {color:darkgreen}
+.colorN {color:darkgreen}
+.red{
+	color:red;
+	font-weight: bold;
+}
+body{
+	font-family: 'Sarabun', 'M PLUS Rounded 1c', sans-serif;
+	scroll-behavior: smooth;
+}
+.accent_low{
+	border-bottom: solid 1.5px red!important;
+	font-size: 1.2em;
+}
+.accent_high{
+	border-top: solid 1.5px red!important;
+	font-size: 1.2em;
+}
+.accent_bar{
+	color: red!important;
+	font-size: 1.2em;
+}
+td.vertical{
+	vertical-align: middle;
+}
+code:hover{cursor: pointer;}
+.nhktitle:hover{cursor: pointer;}
+.font3{
+	font-family: 'Noto Serif JP', serif;
+	font-size:2.5em;
+	font-weight: bold;
+}

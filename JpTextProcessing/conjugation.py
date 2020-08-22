@@ -1,23 +1,29 @@
 from JpTextProcessing.tokenization import *
 
-
 def shift_dan(gyou:str, n:int) -> str:
     """
+    function for shifting Dan
     >>> shift('あ', 2)
     'う'
     """
     if gyou in ['な','ま','ら']:
         return chr(ord(gyou) + n)
-    elif gyou in ['あ','か','が','さ','ざ','た','だ']:
+    elif gyou in ['あ','か','が','さ','ざ']:
         return chr(ord(gyou) + n*2)
     elif gyou in ['は','ば','ぱ']:
         return chr(ord(gyou) + n*3)
+    elif gyou == 'た':
+        return {1:'ち', 2:'つ', 3:'て', 4:'と'}[n]
+    elif gyou == 'だ':
+        return {1:'ぢ', 2:'づ', 3:'で', 4:'ど'}[n]
 
 
-def teform(lemma:str) -> str:
+def get_teform(lemma:str) -> str:
     """
-    group1 base form -> te form
-    teform('書く') >>> '書いて'
+    convert group1 verb base form into te form
+    
+    >>> get_teform('書く')
+    書いて
     """
     if lemma == '行く':
         return '行って'
@@ -35,6 +41,10 @@ def teform(lemma:str) -> str:
 
 def verb_conj_from_lemma(lemma:str, conjtype:str) -> list:
     """
+    input: one verb, conjtype is 5th element of tokenize()
+    output: list of conjugated forms
+
+
     nai, nakatta, masu, base, te, ta, imperative, conditional, potential, volitional : 9-10　forms
 
     verb_conj_from_lemma('行く', '五段・カ行促音')
@@ -44,9 +54,10 @@ def verb_conj_from_lemma(lemma:str, conjtype:str) -> list:
     >>> ['食べる', '食べない', '食べなかった', '食べます', '食べて', '食べた', '食べれば', '食べろ', '食べよう']
     """
     group = conjtype[:2] # conjtype = 五段・カ行, 一段
-    pot = None
+    pot = None # potential form
     
-    if lemma in IRREGULAR_VERBS.keys():
+    # if verb is an irregular verb, look up the dictionary
+    if lemma in IRREGULAR_VERBS:
         return IRREGULAR_VERBS[lemma]
     
     elif conjtype == 'サ変・−ズル': # e.g. 念ずる
@@ -63,29 +74,29 @@ def verb_conj_from_lemma(lemma:str, conjtype:str) -> list:
     
     elif group == '一段' or lemma == 'いる': # e.g. 食べる
         stem = lemma[:-1] # 食べ
-        nai = stem +  'ない'
-        nakatta = stem + 'なかった'
-        masu = stem + 'ます'
-        te = stem + 'て'
-        ta = stem + 'た'
-        imp = stem + 'ろ'
-        con = stem + 'れば'
-        vol = stem + 'よう'
+        nai = stem +  'ない' # 食べない
+        nakatta = stem + 'なかった' # 食べなかった
+        masu = stem + 'ます' # 食べます
+        te = stem + 'て' # 食べて
+        ta = stem + 'た' # 食べた
+        imp = stem + 'ろ' # 食べろ
+        con = stem + 'れば' # 食べれば
+        vol = stem + 'よう' # 食べよう
     
     elif group == '五段':
         gyou = kata2hira(conjtype[3])  # e.g. 五段・カ行　-> か (convert into ア if ワ)
-        stem = lemma[:-1]  # e.g. 行く -> 行
-        nai = stem + gyou + 'ない'
-        nakatta = stem + gyou + 'なかった'
+        stem = lemma[:-1]  # e.g. 買う -> 買
+        nai = stem + gyou + 'ない' # 買わない
+        nakatta = stem + gyou + 'なかった' # 買わなかった
         # wa gyou -> a gyou
         if gyou == 'わ': 
             gyou = 'あ'
-        masu = stem + shift_dan(gyou, 1) + 'ます'
-        te = teform(lemma)
-        ta = te[:-1] + te[-1].replace('て','た').replace('で','だ')
-        imp = stem + shift_dan(gyou, 3)
-        con = stem + shift_dan(gyou, 3) + 'ば'
-        vol = stem + shift_dan(gyou, 4) + 'う'
+        masu = stem + shift_dan(gyou, 1) + 'ます' # 買います
+        te = get_teform(lemma) # 買って
+        ta = te[:-1] + te[-1].replace('て','た').replace('で','だ') # 買った
+        imp = stem + shift_dan(gyou, 3) # 買え
+        con = stem + shift_dan(gyou, 3) + 'ば' # 買えば
+        vol = stem + shift_dan(gyou, 4) + 'う' # 買おう
     
     if pot != None:
         return [lemma] + [nai, nakatta, masu, te, ta, con, imp, vol, pot]
@@ -95,9 +106,9 @@ def verb_conj_from_lemma(lemma:str, conjtype:str) -> list:
 
 def adj_conj_from_lemma(lemma:str):
     """
-    nai, nakatta, desu, base, te, ta, conditional, adverb : 8
+    nai, nakatta, desu, base, te, ta, conditional, adverb : 8 forms
     """
-    if lemma == 'いい':
+    if lemma == 'いい': # exception 
         stem = 'よ'
         desu = 'いいです'
     else:
@@ -124,33 +135,49 @@ def adj_conj_from_lemma(lemma:str):
 
 def conjugate(text:str) -> list:
     """
-    conjugate verb or i-adj
-    if not, return None
-
+    conjugate verb or i-adj regardless of whether it is lemma or not
+    
     conjugate('任ずる')
     >>> ['任ずる', '任じない', '任じなかった', '任じます', '任じて', '任じた', '任ずれば', '任じよ', '任じよう', '任じられる']
 
     conjugate('来て')
     >>> ['来る', '来ない', '来なかった', '来ます', '来て', '来た', '来い', '来れば', '来よう', '来られる']
 
-    
+    tokenize() may return 2-3 or tokens even if it is one word 
+    e.g. 
+    >>> tokenize('任ずる')
+    [['任', '名詞', '一般', '*', '*', '*', '*', '任', 'ニン', 'ニン'],
+    ['ずる', '名詞', '一般', '*', '*', '*', '*', 'ずる', 'ズル', 'ズル']]
+    >>> tokenize('選択する')
+    [['選択', '名詞', 'サ変接続', '*', '*', '*', '*', '選択', 'センタク', 'センタク'],
+    ['する', '動詞', '自立', '*', '*', 'サ変・スル', '基本形', 'する', 'スル', 'スル']]
+
+    if cannot conjugate, return None
     """
+    # exception -ずる動詞
+    # 任ずる => 名詞, but 任じる => 動詞
     if text.endswith('ずる') and tokenize(text.replace('ずる','じる'))[0][1] == '動詞':
         return verb_conj_from_lemma(text, 'サ変・−ズル')
-
-    tokens = tokenize(text)
-    if tokens[0][1] == '動詞':
-        return verb_conj_from_lemma(tokens[0][7], tokens[0][5])
-    elif tokens[0][1] == '形容詞':
-        return adj_conj_from_lemma(tokens[0][7])
-    elif len(tokens) == 1: # only one token and neither verb nor adj
-        return None 
-    elif tokens[0][2] == 'サ変接続': 
-        if tokens[1][7] == 'する': # e.g. 活動 + する
-            return [tokens[0][0] + x for x in verb_conj_from_lemma('する','サ変')]
-        elif tokens[1][2] == 'サ変接続' and tokens[2][7] == 'する': # e.g. 選挙 + 活動 + する
-            return [tokens[0][0] + tokens[1][0] + x for x in verb_conj_from_lemma('する','サ変')]
-    else:
+    try:
+        tokens = tokenize(text)
+        # 0:surface form, 1:pos, 2:pos2, 3:pos3, 4:pos4
+        # 5:conjugation type, 6:conjugation form, 7:lemma, 8:kana, 9:phonemic
+        if len(tokens) == 0:
+            return None
+        if tokens[0][1] == '動詞': # if first token is verb, ignore suffix
+            return verb_conj_from_lemma(tokens[0][7], tokens[0][5]) # 7.lemma, 5.conjtype
+        elif tokens[0][1] == '形容詞':
+            return adj_conj_from_lemma(tokens[0][7])
+        elif len(tokens) == 1: # only one token, but neither verb nor adj
+            return None 
+        elif tokens[0][2] == 'サ変接続': # token[2] = pos2, サ変接続 means 'する' will follow behind
+            if tokens[1][7] == 'する': # 2 tokens e.g. 活動 + する
+                return [tokens[0][0] + x for x in verb_conj_from_lemma('する','サ変')]
+            elif tokens[1][2] == 'サ変接続' and tokens[2][7] == 'する': # 3 tokens e.g. 選挙 + 活動 + する
+                return [tokens[0][0] + tokens[1][0] + x for x in verb_conj_from_lemma('する','サ変')]
+        else:
+            return None
+    except:
         return None
 
 

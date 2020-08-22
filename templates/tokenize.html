@@ -1,0 +1,89 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="container">
+
+	<div class="row my-3">
+    <div class="col-lg-12">
+			<div class="bs-component">
+				<h3>{{ text }}</h3>
+				<h4>{{ roman }}&nbsp;<button type="button" onclick="history.back();" class="btn btn-secondary">back</button></h4>
+				
+				{% if is_detail == True %}
+				<!-- 1:pos, 2:pos2, 3:pos3, 4:pos4 5:conjugation type, 6:conjugation form, 7:lemma, 8:kana, 9:phone -->
+					<table class="table table-hover">
+						<thead>
+							<tr class="table-active">
+								<th scope="col">Surface</th>
+								<th scope="col">Lemma</th>
+								<th scope="col">Kana</th>
+								<th scope="col">Phonemic</th>
+								<th scope="col">PoS</th>
+								<th scope="col">PoS (sub)</th>
+								<th scope="col">Conjugation Type</th>
+								<th scope="col">Conjugation Form</th>
+							</tr>
+						</thead>
+						<tbody>
+							{% for token in tokens %}
+								<tr>
+									<td>{{ token[0] }}</td>
+									{% if token[7] == '*' %} <!-- no lemma => substitute with surface -->
+										<td><a href="/{{ token[0] }}">{{ token[0] }}</a></td>
+									{% elif not token[1].startswith('助') %} <!-- if lemma is not particle, make link -->
+										<td><a href="/{{ token[7] }}">{{ token[7] }}</a></td>
+									{% else %}
+										<td>{{ token[7] }}</td>
+									{% endif %}
+									{% if token|length == 10 %} <!-- whether it has kana/phone -->
+										<td>{{ token[8] }}</td>
+										<td>{{ token[9] }}</td>
+									{% else %}
+										<td>{{ token[0] }}</td> <!-- substitute with surface -->
+										<td>{{ token[0] }}</td>
+									{% endif %}
+									<td>{{ token[1] }}</td> <!-- PoS -->
+									<td>{{ token[2] }}</td>
+									<td>{{ token[5] }}</td>
+									<td>{{ token[6] }}</td>
+								</tr>
+							{% endfor %}
+						</tbody>
+					</table>
+				{% else %} <!-- [surface, phone, lemma, pos] -->
+					<table class="table table-hover">
+						<thead>
+							<tr class="table-active">
+								<th scope="col">Surface<br>รูปจริง</th>
+								<th scope="col">Phonemic<br>วิธีอ่าน</th>
+								<th scope="col">Lemma<br>รูปดิก</th>
+								<th scope="col">PoS<br>ประเภทคำ</th>
+							</tr>
+						</thead>
+						<tbody>
+							{% for token in tokens %}
+								<tr>
+									<td>{{ token[0] }}</td>
+									<td>{{ token[1] }}</td>
+									{% if not token[3].startswith('คำช่วย') %} <!-- lemma -->
+										<td><a href="/{{ token[2] }}">{{ token[2] }}</a></td>
+									{% else %}
+										<td>{{ token[2] }}</td>
+									{% endif %}
+									<td>{{ token[3] }}</td>
+								</tr>
+							{% endfor %}
+						</tbody>
+					</table>
+				{% endif %}
+			</div>
+		</div>
+	</div>
+</div>
+
+<script>
+	Array.from(document.getElementsByClassName('nav-item')).forEach(x => x.classList.remove('active'));
+	document.getElementById('mode_tokenize').classList.add('active');
+</script>
+
+{% endblock %}

@@ -1,0 +1,157 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<!-- top page -->
+
+<div class="container">
+
+	<div class="row my-3">
+    <div class="col-lg-12">
+			<h5><a href="https://lin.ee/2VspuWu" target="blank_">Line Bot Version</a>&nbsp;&nbsp;&nbsp;thanks for <a href="http://www.jtdic.com/" target="blank_">JTDic<a></a></h5>
+    </div>
+	</div>
+	
+	<div class="row my-3">
+		<div class="col-lg-6">
+			<div class="bs-component">
+				<form onsubmit="return search_word('input_dict');">
+					<table class="table">
+						<thead><h3>พจนานุกรม</h3></thead>
+						<tbody>
+							<tr>
+								<td><input type="text" class="form-control" name="text" id="input_dict" placeholder="คำ"></td>
+							</tr>
+						</tbody>
+					</table>
+					<button type="submit" class="btn btn-secondary" onclick="return search_word('input_dict');">search</button>
+				</form><br><br>
+			</div>
+		</div>
+		<div class="col-lg-6">
+			<div class="bs-component">
+				<form action="tokenize" method="POST" onsubmit="return check_form('input_tokenize');">
+					<table class="table">
+						<thead><h3>การตัดคำ</h3></thead>
+						<tbody>
+							<tr>
+								<td><input type="text" class="form-control" name="text" id="input_tokenize" placeholder="ประโยค"></td>
+							</tr>
+						</tbody>
+					</table>
+					<div class="form-check">
+						<label class="form-check-label">
+							<input class="form-check-input" type="checkbox" name="detail">
+							แสดงผลละเอียดเป็นภาษาญี่ปุ่น
+						</label>
+						<button type="submit" class="btn btn-secondary">tokenize ตัดคำ</button>
+					</div>
+				</form><br><br>
+			</div>
+		</div>
+	</div> <!-- END OF ROW TOKENIZE & CONJUGATE -->
+
+	<!-- ROW EXAMPLE & NHK CORPUS -->
+	<div class="row my-3">
+		<div class="col-lg-6"> <!-- EXAMPLE -->
+			<div class="bs-component">
+				<form action="example" method="POST" onsubmit="return check_form('input_example');">
+					<table class="table">
+						<thead><h3>ตัวอย่างจาก Twitter & NHK</h3></thead>
+						<tbody>
+							<tr>
+								<td>
+									<input type="text" class="form-control" name="text" id="input_example">
+								</td>
+								<td>
+									<select class="form-control" name="limit" style="min-width: 6em;">
+										<option value="10">10</option>
+										<option value="30" selected>30</option>
+										<option value="50">50</option>
+										<option value="100">100</option>
+										<option value="500">500</option>
+									</select>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+					<div class="form-check">
+						<label class="form-check-label">
+							<input type="radio" name="concordance" value="" checked>
+							highlight 
+						</label>
+						<label class="form-check-label">
+							<input type="radio" name="concordance" value="1">
+							concordance
+						</label>
+						<button type="submit" class="btn btn-secondary">search</button>
+					</div>
+				</form><br><br>
+			</div>
+		</div>
+		<div class="col-lg-6"> <!-- NHK CORPUS -->
+			<div class="bs-component">
+				<form action="nhkparallel" method="POST">	
+					<table class="table">
+						<thead><h3>NHK News Web Parallel Corpus</h3></thead>
+						<tbody>
+							<tr>
+								<td>
+									<select class="form-control" name="genre">
+										<option value="">ALL</option>
+										<option value="社会">社会</option>
+										<option value="国際">国際</option>
+										<option value="政治">政治</option>
+										<option value="科学・文化">科学・文化</option>
+										<option value="ビジネス">ビジネス</option>
+										<option value="スポーツ">スポーツ</option>
+										<option value="気象・災害">気象・災害</option>
+										<option value="暮らし">暮らし</option>
+										<option value="地域">地域</option>
+									</select>
+								</td>
+								<td><input type="text" class="form-control" name="text" id="input_parallel" placeholder="keyword(option)"></td>
+							</tr>
+						</tbody>
+					</table>
+					<button type="submit" class="btn btn-secondary">search</button>
+				</form><br><br>
+			</div>
+		</div>
+	</div> <!-- END OF ROW EXAMPLE & NHK CORPUS -->
+
+	<div class="row my-3">
+		<div class="col-lg-12">
+			<div class="bs-component">
+				<form action="request" method="POST" onsubmit="return check_form('input_request');">
+					<table class="table">
+						<thead><h3>คำขอการเพิ่มคำ / ความคิดเห็น</h3></thead>
+						<tbody>
+							<tr>
+								<td><input type="text" class="form-control" name="text" id="input_request" placeholder="comment"></td>
+								<td><input type="text" class="form-control" name="text2" placeholder="name(option)" autocomplete="off"></td>
+							</tr>
+						</tbody>
+					</table>
+					<button type="submit" class="btn btn-secondary" onsubmit="return check_form('input_request');">send ส่ง</button>
+				</form><br><br>
+			</div>
+		</div>
+	</div>
+	
+
+</div> <!-- END OF CONTAINER -->
+
+<script>
+	// VALIDATE BEFORE SUBMIT
+	function check_form(elemID){
+		let input = document.getElementById(elemID);
+		if(input.value.trim()==""){
+			input.value = "";
+			input.focus();
+			return false;
+		}else{
+			return true;
+		}
+	}
+</script>
+{% endblock %}

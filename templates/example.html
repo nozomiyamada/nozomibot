@@ -1,0 +1,90 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="container">
+
+	<div class="row my-3">
+    <div class="col-lg-12">
+			<div class="bs-component">
+        <h3>{{ text }} &nbsp;<button type="button" onclick="history.back();" class="btn btn-secondary">back</button></h3>
+      </div>
+    </div>
+	</div> 
+
+  {% if is_concordance %}
+  <div class="row my-3">
+    <div class="col-lg-5">
+			<div class="bs-component">
+				<h3>Twitter {{ tweets|length }}件</h3>
+        <table class="table table-hover">
+          <tbody>
+            {% for tweet in tweets %}
+            <tr>
+              <td style="max-width: 15em;">{{ tweet[0] }}</td>
+              <td class="red" style="min-width: {{ charlength }}em;">{{ tweet[1] }}</td>
+              <td style="max-width: 15em;">{{ tweet[2] }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+			</div>
+    </div>
+    <div class="col-lg-7">
+			<div class="bs-component">
+				<h3>NHK News Web {{ nhks|length }}件</h3>
+        <table class="table table-hover">
+          <tbody>
+            {% for nhk in nhks %}
+            <tr>
+              <td style="max-width: 15em;">{{ nhk[0] }}</td>
+              <td class="red" style="min-width: {{ charlength }}em;">{{ nhk[1] }}</td>
+              <td style="max-width: 15em;">{{ nhk[2] }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+			</div>
+    </div>
+  </div>
+
+  {% else %}
+  <div class="row my-3">
+    <div class="col-lg-5">
+			<div class="bs-component">
+				<h3>Twitter {{ tweets|length }}件</h3>
+        <table class="table table-hover">
+          <tbody>
+            {% for tweet in tweets %}
+            <tr>
+              <td>{{ tweet|safe }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+			</div>
+    </div>
+    <div class="col-lg-7">
+			<div class="bs-component">
+				<h3>NHK News Web {{ nhks|length }}件</h3>
+        <table class="table table-hover">
+          <tbody>
+            {% for nhk in nhks %}
+            <tr>
+              <td>{{ nhk|safe }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+			</div>
+    </div>
+	</div>
+  {% endif %}
+
+</div>
+
+<script>
+	Array.from(document.getElementsByClassName('nav-item')).forEach(x => x.classList.remove('active'));
+	document.getElementById('mode_example').classList.add('active');
+</script>
+
+{% endblock %}
