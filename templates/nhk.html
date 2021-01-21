@@ -1,0 +1,161 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<!-- NHK PAGE -->
+<script>
+	document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+	mode_nhk.classList.add('active');
+</script>
+
+<!-- INPUT % RESULT CONTAINER -->
+<div class="container" id="container_nhk">
+	<div class="row">
+		<div class="col-lg-12">
+
+			<!-- INPUT FORM -->
+			<div class="card">
+				<div class="card-body">
+					<form onsubmit="return false; ajax_nhk();">
+						<h2>NHK PARALLEL CORPUS</h2>
+						<a href="https://www3.nhk.or.jp/news/easy/" target="_blank">NHK News Web Easy</a> / <a href="https://www3.nhk.or.jp/news/" target="_blank">NHK News Web</a><br><br>
+						<div class="input-group mb-4">
+							<div class="input-group-prepend">
+								<span class="input-group-text">GENRE</span>
+							</div>
+							<select class="form-control" v-model="genre">
+								<option value="">&nbsp;&nbsp;ALL</option>
+								<option value="社会">&nbsp;&nbsp;社会</option>
+								<option value="国際">&nbsp;&nbsp;国際</option>
+								<option value="政治">&nbsp;&nbsp;政治</option>
+								<option value="科学・文化">&nbsp;&nbsp;科学・文化</option>
+								<option value="ビジネス">&nbsp;&nbsp;ビジネス</option>
+								<option value="スポーツ">&nbsp;&nbsp;スポーツ</option>
+								<option value="気象・災害">&nbsp;&nbsp;気象・災害</option>
+								<option value="暮らし">&nbsp;&nbsp;暮らし</option>
+								<option value="地域">&nbsp;&nbsp;地域</option>
+							</select>
+							<div class="input-group-prepend">
+								<span class="input-group-text">KEYWORD</span>
+							</div>
+							<input type="text" class="form-control" v-model="keyword" placeholder=" optional">
+						</div>
+						<button type="submit" class="btn btn-primary btn-round h5" onclick="ajax_nhk();">search</button>
+						<button type="reset" class="btn btn-round h5" v-on:click="reset()">reset</button>
+					</form>
+				</div>
+			</div>
+
+			<!-- RESULT CARD -->
+			<div class="card" style="display: none;" v-show="result != 0">
+				<!-- RESULT BODY -->
+				<div class="card-body">
+					<h4>RESULTS : <span v-html="result.nums"></span></h4>
+					<table class="table">
+						<tr class="table-active">
+							<th>Date</th>
+							<th>Easy</th>
+							<th>Normal</th>
+						</tr>
+						<tr class="pointer" v-for="(row, index) in result.article" v-on:click="show_article($event, index)"> <!-- id, date, genre, title_easy_ruby, article_easy_ruby, title, article -->
+							<td>{{ row[1] }}</td>
+							<td v-html="row[3]"></td>
+							<td v-html="row[5]"></td>
+						</tr>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- ARTICLE MODAL -->
+	<div class="modal fade" id="article_modal" tabindex="-1" role="dialog">
+		<div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title">{{ date }}</h5>
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <i class="fas fa-times"></i>
+          </button>
+				</div>
+				<div class="modal-body">
+					<table class="table">
+						<tr class="table">
+							<td style="width:50%;">Easy</td>
+							<td style="width:50%;">Normal</td>
+						</tr>
+						<tr class="table-active">
+							<th v-html="easy_title"></th>
+							<th v-html="normal_title"></th>
+						</tr>
+						<tr> <!-- id, date, genre, title_easy_ruby, article_easy_ruby, title, article -->
+							<td v-html="easy"></td>
+							<td v-html="normal"></td>
+						</tr>
+					</table>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-danger btn-link h5" data-dismiss="modal">close</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+</div>
+
+<!-- SEARCHING MODAL -->
+<div class="modal" id="searchingModal" tabindex="-1" role="dialog">
+	<div class="modal-dialog modal-dialog-centered" role="document">
+		<div class="modal-content">
+			<div class="modal-body">SEARCHING ...</div>
+		</div>
+	</div>
+</div>
+
+<script>
+
+	var vue = new Vue({
+		el:'#container_nhk',
+		data:{
+			genre: '',
+			keyword: '',
+			result: 0, // id, date, genre, title_easy_ruby, article_easy_ruby, title, article
+			date: '',
+			easy_title: '',
+			easy: '',
+			normal_title: '',
+			normal: ''
+		},
+		methods:{
+			reset: function(){
+				this.genre = ''; // initialize
+				this.keyword = '';
+			},
+			show_article: function(e, index){
+				this.date = this.result.article[index][1];
+				this.easy_title = this.result.article[index][3];
+				this.easy = this.result.article[index][4];
+				this.normal_title = this.result.article[index][5];
+				this.normal = this.result.article[index][6];
+				$('#article_modal').modal('show');
+			}
+		}
+	})
+
+	function ajax_nhk(){
+		$('#searchingModal').modal('show');
+		$.ajax({
+			data : {genre: vue.genre, keyword: vue.keyword},
+			type: "POST",
+			dataType: "json",
+			cache: false,
+			timeout: 3000,
+			url : "/nhk"
+		}).done(function(returnData){
+			$('#searchingModal').modal('hide');
+			vue.result = returnData;
+		});
+	}
+</script>
+
+
+{% endblock %}

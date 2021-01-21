@@ -1,9 +1,13 @@
-.org {color:blue}
-.colorC {color:blue}
-.plc {color:orange}
-.colorL {color:orange}
+.org {color:#1f4fff}
+.colorC {color:#1f4fff}
+.plc {color:#ed620c}
+.colorL {color:#ed620c}
 .per {color:darkgreen}
 .colorN {color:darkgreen}
+.pointer {cursor: pointer;}
+tr, th{
+	white-space: pre-line;
+}
 .red{
 	color:red;
 	font-weight: bold;
@@ -11,6 +15,13 @@
 body{
 	font-family: 'Sarabun', 'M PLUS Rounded 1c', sans-serif;
 	scroll-behavior: smooth;
+}
+td.vertical{
+	vertical-align: middle;
+}
+.font3{
+	font-family: 'Noto Serif JP', serif;
+	font-size: 3em;
 }
 .accent_low{
 	border-bottom: solid 1.5px red!important;
@@ -23,14 +34,4 @@ body{
 .accent_bar{
 	color: red!important;
 	font-size: 1.2em;
-}
-td.vertical{
-	vertical-align: middle;
-}
-code:hover{cursor: pointer;}
-.nhktitle:hover{cursor: pointer;}
-.font3{
-	font-family: 'Noto Serif JP', serif;
-	font-size:2.5em;
-	font-weight: bold;
 }

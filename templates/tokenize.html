@@ -1,89 +1,144 @@
 {% extends "layout.html" %}
 {% block content %}
 
-<div class="container">
+<!-- TOKENIZE PAGE -->
+<script>
+	document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+	mode_tokenize.classList.add('active');
+</script>
 
-	<div class="row my-3">
-    <div class="col-lg-12">
-			<div class="bs-component">
-				<h3>{{ text }}</h3>
-				<h4>{{ roman }}&nbsp;<button type="button" onclick="history.back();" class="btn btn-secondary">back</button></h4>
-				
-				{% if is_detail == True %}
-				<!-- 1:pos, 2:pos2, 3:pos3, 4:pos4 5:conjugation type, 6:conjugation form, 7:lemma, 8:kana, 9:phone -->
-					<table class="table table-hover">
-						<thead>
-							<tr class="table-active">
-								<th scope="col">Surface</th>
-								<th scope="col">Lemma</th>
-								<th scope="col">Kana</th>
-								<th scope="col">Phonemic</th>
-								<th scope="col">PoS</th>
-								<th scope="col">PoS (sub)</th>
-								<th scope="col">Conjugation Type</th>
-								<th scope="col">Conjugation Form</th>
-							</tr>
-						</thead>
-						<tbody>
-							{% for token in tokens %}
-								<tr>
-									<td>{{ token[0] }}</td>
-									{% if token[7] == '*' %} <!-- no lemma => substitute with surface -->
-										<td><a href="/{{ token[0] }}">{{ token[0] }}</a></td>
-									{% elif not token[1].startswith('助') %} <!-- if lemma is not particle, make link -->
-										<td><a href="/{{ token[7] }}">{{ token[7] }}</a></td>
-									{% else %}
-										<td>{{ token[7] }}</td>
-									{% endif %}
-									{% if token|length == 10 %} <!-- whether it has kana/phone -->
-										<td>{{ token[8] }}</td>
-										<td>{{ token[9] }}</td>
-									{% else %}
-										<td>{{ token[0] }}</td> <!-- substitute with surface -->
-										<td>{{ token[0] }}</td>
-									{% endif %}
-									<td>{{ token[1] }}</td> <!-- PoS -->
-									<td>{{ token[2] }}</td>
-									<td>{{ token[5] }}</td>
-									<td>{{ token[6] }}</td>
-								</tr>
-							{% endfor %}
-						</tbody>
-					</table>
-				{% else %} <!-- [surface, phone, lemma, pos] -->
-					<table class="table table-hover">
-						<thead>
-							<tr class="table-active">
-								<th scope="col">Surface<br>รูปจริง</th>
-								<th scope="col">Phonemic<br>วิธีอ่าน</th>
-								<th scope="col">Lemma<br>รูปดิก</th>
-								<th scope="col">PoS<br>ประเภทคำ</th>
-							</tr>
-						</thead>
-						<tbody>
-							{% for token in tokens %}
-								<tr>
-									<td>{{ token[0] }}</td>
-									<td>{{ token[1] }}</td>
-									{% if not token[3].startswith('คำช่วย') %} <!-- lemma -->
-										<td><a href="/{{ token[2] }}">{{ token[2] }}</a></td>
-									{% else %}
-										<td>{{ token[2] }}</td>
-									{% endif %}
-									<td>{{ token[3] }}</td>
-								</tr>
-							{% endfor %}
-						</tbody>
-					</table>
-				{% endif %}
+<!-- INPUT % RESULT CONTAINER -->
+<div class="container" id="container_tokenize">
+	<div class="row">
+		<div class="col-lg-12">
+
+			<!-- INPUT FORM -->
+			<div class="card">
+				<div class="card-body">
+					<form onsubmit="return false; ajax_tokenize();">
+						<h2>การตัดคำ</h2>
+						<div class="form-group">
+							<textarea type="text" class="form-control h3" id="input_text" v-on:input="resize()" v-model="text" placeholder="ประโยคภาษาญี่ปุ่น"></textarea>
+						</div>
+						<button type="submit" class="btn btn-primary btn-round h5" onclick="ajax_tokenize();">tokenize</button>
+						<button type="reset" class="btn btn-round h5" v-on:click="reset()">reset</button>
+					</form>
+				</div>
 			</div>
+
+			<!-- RESULT CARD -->
+			<div class="card card-nav-tabs" style="margin-top: 60px; display: none;" v-show="result != 0">
+				<!-- HEADER -->
+				<div class="card-header card-header-primary">
+					<div class="nav-tabs-navigation">
+						<div class="nav-tabs-wrapper">
+							<ul class="nav nav-tabs" data-tabs="tabs">
+								<li class="nav-item" v-show="result.tokens">
+									<a class="nav-link active" href="#tab_tokenize" data-toggle="tab">TOKENIZE</a>
+								</li>
+								<li class="nav-item" v-show="result.roman">
+									<a class="nav-link" href="#tab_roman" data-toggle="tab">ROMANIZE</a>
+								</li>
+							</ul>
+						</div>
+					</div>
+				</div>
+				<!-- RESULT BODY -->
+				<div class="card-body mt-4">
+					<div class="tab-content">
+						<!-- TOKENIZE TAB -->
+						<div class="tab-pane active" id="tab_tokenize">
+							<div class="togglebutton text-primary">
+								<label>
+									<input type="checkbox" v-model="pos_check">
+									<span class="toggle"></span><span class="text-muted">แสดงประเภทคำเป็นภาษาญี่ปุ่น</span>
+								</label>
+							</div>
+							<!-- JAPANESE POS -->
+							<table class="table" v-show="pos_check == true">
+								<tr class="table-active">
+									<th>語<br>คำ</th>
+									<th>発音<br>วิธีอ่าน</th>
+									<th>辞書形<br>รูปดิก</th>
+									<th>品詞<br>ประเภทคำ</th>
+								</tr>
+								<tr v-for="row in result.tokens">
+									<td v-if="row[3].match('助')">{{ row[0] }}</td>
+									<td v-else><a v-bind:href="row[2]" target="_blank">{{ row[0] }}</a></td>
+									<td>{{ row[1] }}</td>
+									<td>{{ row[2] }}</td>
+									<td>{{ row[3] }}</td>
+								</tr>
+							</table>
+							<!-- THAI POS -->
+							<table class="table" v-show="pos_check == false">
+								<tr class="table-active">
+									<th>語<br>คำ</th>
+									<th>発音<br>วิธีอ่าน</th>
+									<th>辞書形<br>รูปดิก</th>
+									<th>品詞<br>ประเภทคำ</th>
+								</tr>
+								<tr v-for="row in result.tokens2"> 
+									<td v-if="row[3].match('คำช่วย')">{{ row[0] }}</td>
+									<td v-else><a v-bind:href="row[2]" target="_blank">{{ row[0] }}</a></td>
+									<td>{{ row[1] }}</td>
+									<td>{{ row[2] }}</td>
+									<td>{{ row[3] }}</td>
+								</tr>
+							</table>
+						</div>
+						<!-- ROMANIZE TAB -->
+						<div class="tab-pane" id="tab_roman">
+							<p class="h3 pointer" data-toggle="tooltip" data-placement="bottom" title="click to copy"
+								onclick="copy_to_clipboard(this);" v-html="result.roman"></p>
+						</div>
+					</div>
+				</div>
+			</div>
+
 		</div>
 	</div>
 </div>
-
 <script>
-	Array.from(document.getElementsByClassName('nav-item')).forEach(x => x.classList.remove('active'));
-	document.getElementById('mode_tokenize').classList.add('active');
+
+	var vue = new Vue({
+		el:'#container_tokenize',
+		data:{
+			text: '',
+			result: 0,
+			pos_check: false
+		},
+		methods:{
+			resize: function(){
+				if(input_text.scrollHeight < 400){
+					input_text.style['min-height'] = 0; // initialize
+					input_text.style['min-height'] = input_text.scrollHeight + 'px';
+				}
+			},
+			reset: function(){
+				input_text.style['min-height'] = 0; // initialize
+				this.text = '';
+				input_text.focus();
+			}
+		}
+	})
+
+	function ajax_tokenize(){
+		if(vue.text.trim()==''){input_text.focus(); return;}
+		// $('#searchingModal').modal('show');
+		$.ajax({
+			data : {text: vue.text},
+			type: "POST",
+			dataType: "json",
+			cache: false,
+			timeout: 3000,
+			url : "/tokenize"
+		}).done(function(returnData){
+			// $('#searchingModal').modal('hide');
+			vue.result = returnData;
+		});
+	}
 </script>
+
 
 {% endblock %}

@@ -1,0 +1,291 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<!-- DICT PAGE -->
+<script>
+	document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+	mode_dictionary.classList.add('active');
+</script>
+
+<!-- CONTAINER HOW TO USE -->
+<div class="container">
+	<div class="row mt-3">
+		<div class="col-lg-12">
+			<h5>Go To <a href="https://lin.ee/2VspuWu" target="blank_">Linebot Version</a>&nbsp;&nbsp;&nbsp;thanks for <a href="http://www.jtdic.com/" target="blank_">JTDic<a></a></h5>
+			<span class="badge badge-pill badge-secondary h5 pointer" data-toggle="modal" data-target="#howtoModal">&nbsp;How To Use&nbsp;</span>
+		</div>
+	</div>	
+	<!-- HOW TO USE MODAL -->
+	<div class="modal fade" id="howtoModal" tabindex="-1" role="dialog">
+		<div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title">HOW TO USE</h5>
+				</div>
+				<div class="modal-body">
+					<ol>
+						<li><a href="/">Dictionary</a> : พจนานุกรมญี่ปุ่น-ไทย (max 15 คำ) พร้อมคำพ้องเสียง การผันรูป accent ความถี่ ข้อมูลคันจิ</li>
+						<li><a href="/tokenize">Tokenize</a> : การตัดประโยคเป็นคำๆ พร้อมวิธีอ่าน ประเภทคำ ความหมาย</li>
+						<li><a href="/example">Example</a> : ค้นหาตัวอย่างประโยคจาก Twitter (ภาษาที่ไม่เป็นทางการ) และ NHK News Web (ภาษาที่เป็นทางการ)</li>
+						<li><a href="/nhk">NHK Corpus</a> : ค้นหาคู่บทความ NHK News Web และ NHK News Web Easy ซึ่งเนื้อหาเดียวกัน</li>
+					</ol>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-danger btn-link h5" data-dismiss="modal">close</button>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- INPUT % RESULT CONTAINER -->
+<div class="container" id="container_main">
+	<!-- INPUT FORM -->
+	<div class="row">
+		<div class="col-lg-12">
+			<div class="card">
+				<div class="card-body">
+					<form onsubmit="return false; ajax_dict();">
+						<h2>พจนานุกรม</h2>
+						<div class="form-group">
+							<input type="text" class="form-control h3" id="input_word" v-model="word" placeholder="คำที่ค้นหา">
+						</div>
+						<button type="submit" class="btn btn-primary btn-round h5" onclick="ajax_dict();">search</button>
+						<button type="reset" class="btn btn-round h5" onclick="input_word.value='';input_word.focus();">reset</button>
+					</form>
+				</div>
+			</div>
+			<!-- RESULT CARD -->
+			<div class="card card-nav-tabs" style="margin-top: 60px; display: none;" v-show="result != 0">
+				<div class="card-header card-header-primary">
+					<span v-show="result.none == 'true'">NO RESULT</span>
+					<div class="nav-tabs-navigation" v-show="result.none == 'false'">
+						<div class="nav-tabs-wrapper">
+							<ul class="nav nav-tabs" data-tabs="tabs">
+								<li class="nav-item" v-show="result.meaning">
+									<a class="nav-link active" href="#tab_meaning" data-toggle="tab">ความหมาย</a>
+								</li>
+								<li class="nav-item" v-show="result.conj">
+									<a class="nav-link" href="#tab_conj" data-toggle="tab">การผันรูป</a>
+								</li>
+								<li class="nav-item" v-show="result.accent">
+									<a class="nav-link" href="#tab_accent" data-toggle="tab">ACCENT</a>
+								</li>
+								<li class="nav-item" v-show="result.freq">
+									<a class="nav-link" href="#tab_freq" data-toggle="tab">ความถี่</a>
+								</li>
+								<li class="nav-item" v-show="result.kanji">
+									<a class="nav-link" href="#tab_kanji" data-toggle="tab">KANJI</a>
+								</li>
+							</ul>
+						</div>
+					</div>
+				</div>
+				<div class="card-body mt-4">
+					<div class="tab-content">
+						<!-- MEANING -->
+						<div class="tab-pane active" id="tab_meaning" v-show="result.meaning">
+							<table class="table">
+								<tr class="table-active">
+									<th>Word</th>
+									<th>Kana</th>
+									<th>Meaning</th>
+								</tr>
+								<tr v-for="row in result.meaning">
+									<td>{{ row[1] }}</td>
+									<td>{{ row[0] }}</td>
+									<td>{{ row[2] }}</td>
+								</tr>
+							</table>
+						</div>
+						<!-- CONJUGATION -->
+						<div class="tab-pane" id="tab_conj" v-show="result.conj">
+							<table class="table" v-show="media !='PC' ">
+								<tr v-for="form in result.conj">
+									<th class="table-active">{{ form[0] }}</th>
+									<td>{{ form[1] }}</td>
+								</tr>
+							</table>
+							<table class="table" v-show="media == 'PC' ">
+								<tr class="table-active">
+									<th v-for="form in result.conj">{{ form[0] }}</th>
+								</tr>
+								<tr>
+									<td v-for="form in result.conj">{{ form[1] }}</th>
+								</tr>
+							</table>
+						</div>
+						<!-- ACCENT -->
+						<div class="tab-pane" id="tab_accent" v-show="result.accent">
+							<table class="table">
+								<tr class="table-active">
+									<th>Word</th>
+									<th>Accent</th>
+									<th>Origin</th>
+								</tr>
+								<tr v-for="row in result.accent">
+									<td>{{ row[0] }}</td>
+									<td v-html="row[1]"></td>
+									<td>{{ row[2] }}</td>
+								</tr>
+							</table>
+						</div>
+						<!-- FREQUENCY -->
+						<div class="tab-pane" id="tab_freq" v-show="result.freq">
+							<h4>ความถี่ในคลังข้อมูล <a href="https://nlb.ninjal.ac.jp/search/" target="_blank">BCCWJ</a></h4>
+							<table class="table">
+								<tr class="table-active">
+									<th>Rank</th>
+									<th>Word</th>
+									<th>ประเภทคำ</th>
+									<th>ความถี่ต่อล้านคำ</th>
+								</tr>
+								<tr v-for="row in result.freq">
+									<td>{{ row[1] }}</td>
+									<td>{{ row[0] }}({{ row[2] }})</td>
+									<td>{{ row[3] }}</td>
+									<td>{{ row[4] }}</td>
+								</tr>
+							</table>
+						</div>
+						<!-- KANJI -->
+						<div class="tab-pane" id="tab_kanji" v-show="result.kanji">
+							<h4>From <a href="https://www.kanjipedia.jp/" target="_blank">漢字ペディア</a></h4>
+							<table class="table" v-show="media =='PC' ">
+								<tr class="table-active">
+									<th>漢字<br>Kanji</th>
+									<th style="min-width:5em;">音読み<br>On</th>
+									<th style="min-width:5em;">訓読み<br>Kun</th>
+									<th>意味<br>Meaning</th>
+								</tr>
+								<tr v-for="row in result.kanji">
+									<td class="font3 text-rose vertical" style="padding: 0.5em">{{ row[0] }}</td>
+									<td class="vertical">{{ row[1] }}</td> 
+									<td class="vertical">{{ row[2] }}</td>
+									<td class="vertical" v-html="row[3]"></td>
+								</tr>
+							</table>
+							<table class="table" v-show="media !='PC' ">
+								<tbody v-for="row in result.kanji">
+									<tr class="table-active">
+										<th>漢字<br>Kanji</th>
+										<td class="font3 text-rose vertical" style="padding: 0.5em">{{ row[0] }}</td>
+									</tr>
+									<tr>
+										<th style="min-width:5em;">音読み<br>On</th>
+										<td class="vertical">{{ row[1] }}</td> 
+									</tr>
+									<tr>
+										<th style="min-width:5em;">訓読み<br>Kun</th>
+										<td class="vertical">{{ row[2] }}</td>
+									</tr>
+									<tr>
+										<th>意味<br>Meaning</th>
+										<td class="vertical" v-html="row[3]"></td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- SEARCHING MODAL -->
+<div class="modal" id="searchingModal" tabindex="-1" role="dialog">
+	<div class="modal-dialog modal-dialog-centered" role="document">
+		<div class="modal-content">
+			<div class="modal-body">SEARCHING ...</div>
+		</div>
+	</div>
+</div>
+
+<!-- REQUEST FORM -->
+<div class="container" id="container_request">
+	<div class="row">
+		<div class="col-lg-12">
+			<div class="card">
+				<div class="card-body">
+					<h3>คำขอการเพิ่มคำ / ความคิดเห็น</h3>
+					<form onsubmit="return false; ajax_request();">
+						<div class="input-group">
+							<div class="input-group-prepend">
+								<span class="input-group-text">Comment</span>
+							</div>
+							<input type="text" class="form-control" id="input_comment" v-model="comment">
+						</div>
+						<div class="input-group mb-2">
+							<div class="input-group-prepend">
+								<span class="input-group-text">Name</span>
+							</div>
+							<input type="text" class="form-control" placeholder=" optional" v-model="name">
+						</div>
+						<button class="btn btn-primary btn-round h5" onclick="ajax_request();">send</button>
+					</form>
+				</div>
+			</div>
+		</div>
+	</div>
+</div> <!-- END OF REQUEST CONTAINER -->
+
+<script>
+	var vue = new Vue({
+		el:'#container_main',
+		data:{
+			media: MEDIA,
+			word: '',
+			result: 0
+		}
+	})
+
+	function ajax_dict(){
+		if(vue.word.trim()==''){input_word.focus(); return;}
+		$('#searchingModal').modal('show');
+		$.ajax({
+			data : {word: vue.word},
+			type: "POST",
+			dataType: "json",
+			cache: false,
+			timeout: 3000,
+			url : "/"
+		}).done(function(returnData){
+			$('#searchingModal').modal('hide');
+			vue.result = returnData;
+		});
+	}
+
+	var vue_request = new Vue({
+		el:'#container_request',
+		data:{
+			comment: '',
+			name: ''
+		}
+	})
+	function ajax_request(){
+		if(vue_request.comment.trim()==''){input_comment.focus(); return;}
+		$.ajax({
+			data : vue_request._data,
+			type: "POST",
+			dataType: "json",
+			cache: false,
+			timeout: 3000,
+			url : "/request"
+		}).done(function(returnData){
+			alert('Thank you for your feedback!')
+		});
+	}
+
+	window.onload = function(){
+		var WORD = (( word|tojson ));
+		if(WORD != ''){
+			input_word.focus();
+			vue.word = WORD;
+			ajax_dict();
+		}
+	}
+	
+</script>
+
+{% endblock %}

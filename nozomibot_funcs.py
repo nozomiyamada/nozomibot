@@ -1,9 +1,8 @@
 import re, requests, json
-from JpTextProcessing import yomikata, hira2kata
-from bs4 import BeautifulSoup
+from JpProcessing import yomikata, hira2kata, kata2hira, is_only_kana
 import urllib.parse
 import pandas as pd
-import numpy as np
+pd.set_option('mode.chained_assignment', None)
 
 
 def toNchr(morph:str, n=3) -> str:
@@ -18,7 +17,66 @@ def toNchr(morph:str, n=3) -> str:
     return morph + (n-len(morph)) * '　'
 
 
-########## KANJI DICT ##########
+########## GET WORD FROM DICTIONARY ##########
+
+# load dictionary [yomi,word,thai]
+WORD_DICT = pd.read_csv('data/jtdic.csv', encoding='utf8').fillna('-') # nan -> "-"
+
+# FUNTION FOR SORT DATAFRAME BY LENGTH 
+def sort_df(df, columns:list):
+    df['length_word'] = df.word.apply(len)
+    df['length_yomi'] = df.yomi.apply(len)
+    return df.sort_values(columns)[['yomi','word','thai']]
+
+def get_word_exact(word:str):
+    # SEARCH BY WORD, ONLY EXACT MATCH
+    return WORD_DICT[WORD_DICT.word == word].values.tolist()
+
+def get_word(word:str, format_for_linebot=True):
+    # SEARCH BY THAI WORD => 1.INITIAL MATCH, 2.LIKE MATCH
+    if re.search(r'[ก-๙]+', word):
+        df_initial = WORD_DICT[WORD_DICT.thai.str.startswith(word)] # 1.INITIAL MATCH
+        df_initial['length_thai'] = df_initial.thai.apply(len)
+        df_initial['length_yomi'] = df_initial.yomi.apply(len)
+        df_initial = df_initial.sort_values(['length_thai','length_yomi'])[['yomi','word','thai']]
+        df_like = WORD_DICT[WORD_DICT.thai.str.contains(word)] # 2.LIKE MATCH
+        df_like['length_thai'] = df_like.thai.apply(len)
+        df_like['length_yomi'] = df_like.yomi.apply(len)
+        df_like = df_like.sort_values(['length_thai','length_yomi'])[['yomi','word','thai']]
+        df = pd.concat([df_initial, df_like]).drop_duplicates()
+    # SEARCH BY JAPANESE WORD
+    else:
+        # IF CONTAINS KANJI => 1.KANJI INITIAL, 2.KANA EXACT, 3.KANJI LIKE; PRIORITY TO 'word'
+        if not is_only_kana(word):
+            yomi_katakana = yomikata(word)
+            yomi_hiragana = kata2hira(yomi_katakana)
+            df_initial = WORD_DICT[WORD_DICT.word.str.startswith(word)] # 1. KANJI INITIAL MATCH
+            df_initial = sort_df(df_initial, ['length_word','length_yomi'])
+            df_yomi = WORD_DICT[WORD_DICT.yomi == yomi_hiragana] # 2. KANA EXACT MATCH
+            df_yomi = sort_df(df_yomi, ['length_word','length_yomi'])
+            df_like = WORD_DICT[WORD_DICT.word.str.contains(word)] # 3. KANJI LIKE MATCH
+            df_like = sort_df(df_like, ['length_word','length_yomi'])
+            df = pd.concat([df_initial, df_yomi, df_like]).drop_duplicates()
+        # ONLY KANA => 1.EXACT, 2.INITIAL, 3.LIKE; PRIORITY TO 'yomi'
+        else:
+            yomi_katakana = hira2kata(word)
+            yomi_hiragana = kata2hira(word)
+            df_exact = WORD_DICT[WORD_DICT.word == word]
+            df_initial = WORD_DICT[(WORD_DICT.word.str.startswith(word)) | (WORD_DICT.yomi.str.startswith(yomi_katakana)) | (WORD_DICT.yomi.str.startswith(yomi_hiragana))] 
+            df_initial = sort_df(df_initial, ['length_yomi','length_word'])
+            df_like = WORD_DICT[(WORD_DICT.word.str.contains(word)) | (WORD_DICT.yomi.str.contains(yomi_katakana)) | (WORD_DICT.yomi.str.contains(yomi_hiragana))]
+            df_like = sort_df(df_like, ['length_yomi','length_word'])
+            df = pd.concat([df_exact, df_initial, df_like]).drop_duplicates()
+
+    if len(df) == 0:
+        return None
+    elif format_for_linebot:
+        return '\n'.join([' '.join(x) for x in df[['word','yomi','thai']].values.tolist()[:15]])
+    else:
+        return df.values.tolist()[:15]
+
+
+##########  KANJI DICT ##########
 
 # load dictionary
 with open('data/kanji.json','r', encoding='utf8') as f:
@@ -29,120 +87,97 @@ def get_kanji(kanji:str, format_for_linebot=True):
     get kanji from dictionary 
     key is kanji, value is dictionary {'会':{...}, '眠':{...}}
     """
-    content = KANJI_DICT.get(kanji, None)
+    dic = KANJI_DICT.get(kanji, None)
     if format_for_linebot:
-        if content == None:
+        if dic == None:
             return 'ขอโทษที่หาไม่เจอในดิกครับ'
-        on = content['on']
-        kun = content['kun']
-        imi = '\n'.join(content['imi'])
-        bushu = content['bushu']
-        kanken = content['kanken']
+        on = dic['on']
+        kun = dic['kun']
+        imi = '\n'.join(dic['imi'])
+        bushu = dic['bushu']
+        kanken = dic['kanken']
         return f"onyomi: {on}\nkunyomi: {kun}\nความหมาย:\n{imi}\nbushu: {bushu}\nkanken level: {kanken}"
     else:
-        return content # dict
+        if dic == None:
+            return None
+        return [kanji, dic['on'], dic['kun'], '<br>'.join(dic['imi'])]
 
 
 ########## ACCENT ##########
 
-# load dictionary
-ACCENT_DICT = pd.read_csv('data/accent.csv', encoding='utf8').fillna('-') # nan -> "-"
+# LOAD CSV
+ACCENT_TABLE = pd.read_csv('data/accent.csv', encoding='utf8').fillna('-') # nan -> "-"
+
+# FUNTION FOR SORT DATAFRAME BY LENGTH 
+def sort_df_accent(df, columns:list):
+        df['length_word'] = df.word.apply(len)
+        df['length_yomi'] = df.yomi.apply(len)
+        return df.sort_values(columns)[['word','accent','english']]
 
 def get_accent(word:str, format_for_linebot=True):
     """
     get accent from table 
-    header = accent, word, yomi, english
-    'accent' is primary key, written in Katakana e.g. カ/ンシン
-    'word' may contain several entries e.g. 関心・感心
-    'yomi' is kana of word
+    header = [accent, word, yomi, english]
+    'accent' is written in Katakana e.g. カ/ンシン
+    'word' is lexical entry
+    'yomi' is hiragana of the word
     """
     if len(word) == 0:
         return None if format_for_linebot else []
-    # WHERE clause
-    mask = (ACCENT_DICT.word.str.contains(word)) | (ACCENT_DICT.yomi.str.contains(word)) | ACCENT_DICT.english.str.contains(word,case=False)
-    df = ACCENT_DICT[mask]
-    df['length_word'] = df.word.apply(len)
-    df['length_yomi'] = df.yomi.apply(len)
-    df = df.sort_values(['length_yomi','length_word']) # ORDER BY LENGTH(yomi), LENGTH(word)
+    # SEARCH BY THAI WORD
+    if re.search(r'[ก-๙]+', word):
+        df_initial = ACCENT_TABLE[ACCENT_TABLE.english.str.startswith(word)]
+        df_initial['english_length'] = df_initial.english.apply(len)
+        df = df_initial.sort_values('english_length')[['word','accent','english']]
+    # CONTAINS KANJI => 1.EXACT, 2.INITIAL, 3.EXACT OF KANA, 4.LIKE 
+    elif not is_only_kana(word): 
+        yomi_hiragana = yomikata(word, katakana=False)
+        # 1 2.EXACT & INITIAL MATCH OF THE WORD
+        df_initial = ACCENT_TABLE[ACCENT_TABLE.word.str.startswith(word)] 
+        df_initial = sort_df_accent(df_initial, ['length_word','length_yomi'])
+        # 3.EXACT MATCH OF THE KANA (NO SORT)
+        df_yomi = ACCENT_TABLE[ACCENT_TABLE.yomi == yomi_hiragana][['word','accent','english']] 
+        # 4.LIKE MATCH OF THE WORD
+        df_like = ACCENT_TABLE[ACCENT_TABLE.word.str.contains(word)] 
+        df_like = sort_df_accent(df_like, ['length_word','length_yomi'])
+        df = pd.concat([df_initial, df_yomi, df_like]).drop_duplicates()
+    # ONLY KANA => 1.EXACT, 2.INITIAL, 3.LIKE
+    else:
+        yomi_hiragana = kata2hira(word)
+        # 1.EXACT MATCH OF THE WORD
+        df_exact = ACCENT_TABLE[(ACCENT_TABLE.word == word) | (ACCENT_TABLE.yomi.str == word)][['word','accent','english']] 
+        # 2.INITIAL MATCH OF (THE WORD OR THE KANA)
+        df_initial = ACCENT_TABLE[(ACCENT_TABLE.word.str.startswith(word)) | (ACCENT_TABLE.yomi.str.startswith(yomi_hiragana))]
+        df_initial = sort_df_accent(df_initial, ['length_yomi','length_word'])
+        # 3.LIKE MATCH OF (THE WORD OR THE KANA)
+        df_like = ACCENT_TABLE[(ACCENT_TABLE.word.str.contains(word)) | (ACCENT_TABLE.english.str.contains(yomi_hiragana))]
+        df_like = sort_df_accent(df_like, ['length_yomi','length_word'])
+        df = pd.concat([df_exact, df_initial, df_like]).drop_duplicates()
     if len(df) == 0:
-        return None if format_for_linebot else []
+        return None
     elif format_for_linebot:
         text = ''
-        for i, row in df.iterrows():
+        for _, row in df.head(5).iterrows(): # ONLY 5 ENTRIES
             word = 'word: '
-            for column in row[['word','yomi','english']]:
+            for column in row[['word','english']]:
                 if column != '-':
                     word += column + ' '
             text += word.strip() + '\n' + 'accent: ' + row['accent'] + '\n\n'
-            if i > 5: # only 5 entries
-                break
         return text.strip()
-    else: # for WEB API
-        lists = df.values.tolist() # return list of [accent, word, yomi, english]
-        lists = [[accent_to_html(l[0])] + l[1:] for l in lists] # change accent to html format
-        return lists[:10] # only 10 entries
+    else: # FOR WEB API
+        lists = df.values.tolist() # RETURN LIST OF ['word','accent','english']
+        lists = [[l[0]] + [accent_to_html(l[1])] + [l[2]] for l in lists] # CONVERT ACCENT TO HTML FORMAT
+        return lists[:10] # ONLY 10 ENTRIES
 
 def accent_to_html(accent:str) -> str:
     """
     convert accent text into html, class names are "accent_high" and "accent_low" 
-    'あ\いは/んす\る' => <span class="accent_high">あ</span><span class="accent_low">いは</span>...
+    'あ\\いは/んす\\る' => <span class="accent_high">あ</span><span class="accent_low">いは</span>...
     """
-    match = re.match(r'(.+?)([/\\].*)', accent) # capture first 1-2 chrs and remainings
-    if match.group(2)[0] == '/':
-        html = f'<span class="accent_low">{match.group(1)}</span><span class="accent_bar">/</span>'
-        is_high = True
-    else:
-        html = f'<span class="accent_high">{match.group(1)}</span><span class="accent_bar">\\</span>'
-        is_high = False
-    accent = match.group(2)[1:] # cut first 1 character = / or \
-    while '/' in accent or '\\' in accent: # repeat the same thing
-        if is_high:
-            next_tone_index = accent.index('\\')
-            html += f'<span class="accent_high">{accent[:next_tone_index]}</span><span class="accent_bar">\\</span>'
-        else:
-            next_tone_index = accent.index('/')
-            html += f'<span class="accent_low">{accent[:next_tone_index]}</span><span class="accent_bar">/</span>'
-        accent = accent[next_tone_index+1:]
-        is_high = not is_high
-    if is_high: # the last portion
-        html += f'<span class="accent_high">{accent}</span>'
-    else:
-        html += f'<span class="accent_low">{accent}</span>'
-    return html
-
-
-########## GET WORD FROM DICTIONARY ##########
-
-# load dictionary [yomi,word,thai]
-WORD_DICT = pd.read_csv('data/jtdic.csv', encoding='utf8').fillna('-') # nan -> "-"
-
-def get_word(word:str, format_for_linebot=True):
-    # SEARCH BY THAI WORD
-    if re.search(r'[ก-๙]+', word):
-        df = WORD_DICT[WORD_DICT.thai.str.contains(word)]
-        df['length_thai'] = df.thai.apply(len)
-        df['length_yomi'] = df.yomi.apply(len)
-        df = df.sort_values(['length_thai','length_yomi'])
-    # SEARCH BY JAPANESE WORD
-    else:
-        df = WORD_DICT[(WORD_DICT.word.str.contains(word)) | (WORD_DICT.yomi.str.contains(word))]
-        df['length_word'] = df.word.apply(len)
-        df['length_yomi'] = df.yomi.apply(len)
-        df = df.sort_values(['length_word','length_yomi'])
-        if len(df) == 0: # if no results, convert word into Kana and search again
-            yomi = yomikata(word)
-            df = WORD_DICT[WORD_DICT.yomi.str.contains(yomi)]
-            df['length_word'] = df.word.apply(len)
-            df['length_yomi'] = df.yomi.apply(len)
-            df = df.sort_values(['length_word','length_yomi'])
-
-    if len(df) == 0:
-        return []
-    elif format_for_linebot:
-        return '\n'.join([' '.join(x) for x in df[['word','yomi','thai']].values.tolist()[:20]])
-    else:
-        return df.values.tolist()[:100]
-
+    accent = re.sub(r'((?<=^)|(?<=\\))(\w+?)((?=/)|(?=$))', r'<span class="accent_low">\2</span>', accent)
+    accent = re.sub(r'((?<=^)|(?<=/))(\w+?)((?=\\)|(?=$))', r'<span class="accent_high">\2</span>', accent)
+    accent = re.sub(r'(?<!<)([/\\])', r'<span class="accent_bar">\1</span>', accent)
+    return accent
 
 ########## GET RANKING & FREQ ##########
 
@@ -161,14 +196,14 @@ def get_rank(word):
     elif len(df) == 1:
         result = [df.iloc[0].tolist()]
     else:
-        result = []
+        return None
     # PoS Thai
     pos_mapping = {'動詞':'กริยา','名詞':'คำนาม','形容詞':'i-adj','助詞':'คำช่วย','助動詞':'คำช่วยที่ผันรูป','副詞':'adv','接頭辞':'prefix','接尾辞':'suffix',
         '連体詞':'คำขยายคำนาม','記号':'เครื่องหมาย','感動詞':'คำอุทาน','フィラー':'filler','接続詞':'คำเชื่อม','その他':'others'}
     for r in result:
         if r[3] in pos_mapping:
             r[3] += f' {pos_mapping[r[3]]}'
-    return result
+    return [list(map(str, row)) for row in result] # stringify
 
 ########## GET PARALLEL CORPUS ##########
 
@@ -176,11 +211,11 @@ NHK_PARALLEL = pd.read_json('data/nhk_parallel.json')
 def get_parallel(genre:str, keyword:str):
     mask = (NHK_PARALLEL.genre.str.contains(genre)) & (NHK_PARALLEL.article_easy_ruby.str.contains(keyword) | NHK_PARALLEL.article.str.contains(keyword))
     df = NHK_PARALLEL[mask].sort_values('datePublished', ascending=False)
-    df['datePublished'] = df.datePublished.apply(lambda x:x[2:10].replace('-', ' '))
-    df = df[['title_easy_ruby','article_easy_ruby','title','article','datePublished', 'genre']]
-    # highlight keyword in the text except for genre
+    df['datePublished'] = df.datePublished.apply(lambda x:x[2:10].replace('-', '/')) # "2013-04-07T18:09" -> "13/04/07"
+    df = df[['id','datePublished', 'genre', 'title_easy_ruby','article_easy_ruby','title','article', ]]
+    # highlight keyword in 'title_easy_ruby', 'article_easy_ruby', 'title', 'article'
     # if has more than one genre, replace "_" with <br> 
-    return [[highlight(x, keyword) for x in record[:-1]] + [record[-1].replace('_', '<br><br>')] for record in df.values.tolist()]
+    return [[r[0], r[1], r[2].replace('_', '<br><br>')] + [highlight(x, keyword) for x in r[3:]] for r in df.values.tolist()]
 
 def highlight(text:str, keyword:str):
     """
