@@ -104,7 +104,9 @@ def top_page():
 	if request.method == 'GET':
 		return render_template('dict.html', word='')
 	elif request.method == 'POST':
+		userip = request.remote_addr
 		word = request.form['word']
+		log_web('dict', word, userip) # LOG SEARCH HISTORY
 		if re.search(r'[ก-๙][ก-๙\.\-]+', word): # Thai word
 			meaning = get_word(word, format_for_linebot=False)# [yomi,word,thai]
 			if meaning == None:
@@ -150,7 +152,6 @@ def top_page():
 def web_word(word):
 	return render_template('dict.html', word=word)
 
-
 ##### TOKENIZE PAGE #####
 @app.route("/tokenize", methods=['GET', 'POST'])
 def web_tokenize():
@@ -158,6 +159,8 @@ def web_tokenize():
 		return render_template('tokenize.html')
 	elif request.method == 'POST':
 		text = request.form['text'].strip() # get POST parameters: input sentences
+		userip = request.remote_addr
+		log_web('tokenize', text, userip) # LOG SEARCH HISTORY
 		roman = romanize(text)
 		tokens = tokenize(text) # ["住ん", "スン", "スム", "住む", "動詞-一般", "五段-マ行", "連用形-撥音便", "1"]
 		tokens_thai = tokenize(text, pos_thai=True) # ['住ん', 'スン', '住む', 'กริยากลุ่ม1']
@@ -198,6 +201,8 @@ def web_nhkweb():
 	elif request.method == 'POST':
 		genre = request.form['genre'] # get POST parameters: genre
 		keyword = request.form['keyword'].strip() # get POST parameters: input keyword
+		userip = request.remote_addr
+		log_web('nhk', f'{genre}_{keyword}', userip) # LOG SEARCH HISTORY
 		articles = get_parallel(genre, keyword) # id, title_easy_ruby, article_easy_ruby, title, article, date, genre 
 		return jsonify({'article':articles, 'nums':len(articles)})
 
@@ -218,6 +223,16 @@ def web_request():
 	return jsonify({'result':'success'})
 	
 
+##### SQL LOG FUNCTION #####
+def log_web(mode, text, userip):
+	try:
+		con, cursor = connect_sql('nozomibot')
+		date_now = get_time_now()
+		cursor.execute(f"INSERT INTO log_web (date, mode, text, userip) VALUES (%s, %s, %s, %s);", (date_now, mode, text, userip))
+		con.commit()
+		con.close()
+	except:
+		pass
 
 
 description = """< วิธีใช้ >
@@ -516,9 +531,9 @@ def get_nhk(query, limit, concordance=False, highlighted=False):
 
 def get_time_now():
 	tz = time.tzname[0]
-	if timezone in ['UTC']:
+	if timezone in ['UTC']: # on EC2
 		return str(datetime.now()+timedelta(hours=7)).split('.')[0]
-	else:
+	else: # on Local
 		return str(datetime.now()).split('.')[0]
 
 
