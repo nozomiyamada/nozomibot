@@ -70,7 +70,7 @@ def handle_message(event):
 
 	# user info & datetime (ICT)
 	profile = line_bot_api.get_profile(event.source.user_id)
-	date_now = str(datetime.now(timezone(timedelta(hours=7))))  
+	date_now = get_time_now()
 
 	# connect SQL & insert into LOG
 	con, cursor = connect_sql('jtdic')
@@ -223,17 +223,11 @@ def web_request():
 	return jsonify({'result':'success'})
 	
 
-##### SQL LOG FUNCTION #####
-def log_web(mode, text, userip):
-	try:
-		con, cursor = connect_sql('nozomibot')
-		date_now = get_time_now()
-		cursor.execute(f"INSERT INTO log_web (date, mode, text, userip) VALUES (%s, %s, %s, %s);", (date_now, mode, text, userip))
-		con.commit()
-		con.close()
-	except:
-		pass
+########################################################################################################################
 
+################################################################################
+###  NOZOMIBOT LINE APP
+################################################################################
 
 description = """< วิธีใช้ >
 
@@ -531,10 +525,32 @@ def get_nhk(query, limit, concordance=False, highlighted=False):
 
 def get_time_now():
 	tz = time.tzname[0]
-	if timezone in ['UTC']: # on EC2
+	if tz == 'UTC': # on EC2
 		return str(datetime.now()+timedelta(hours=7)).split('.')[0]
 	else: # on Local
 		return str(datetime.now()).split('.')[0]
+
+##### SQL LOG FUNCTION #####
+def log_web(mode, text, userip):
+	try:
+		con, cursor = connect_sql('nozomibot')
+		date_now = get_time_now()
+		cursor.execute(f"INSERT INTO log_web (date, mode, text, userip) VALUES (%s, %s, %s, %s);", (date_now, mode, text, userip))
+		con.commit()
+		con.close()
+	except:
+		pass
+
+def log_line(mode, text, username, userid):
+	try:
+		con, cursor = connect_sql('nozomibot')
+		date_now = get_time_now()
+		cursor.execute(f"INSERT INTO log_line (date, mode, text, username, userid) VALUES (%s, %s, %s, %s, %s);", (date_now, mode, text, username, userid))
+		con.commit()
+		con.close()
+	except:
+		pass
+
 
 
 ###########################################################
