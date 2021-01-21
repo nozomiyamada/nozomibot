@@ -147,10 +147,6 @@ def top_page():
 		else:
 			return jsonify({'meaning':meaning, 'conj':conj, 'accent':accent, 'freq':freq, 'kanji':kanjis, 'none':'false'})
 
-##### SINGLE WORD SEARCH : SAME AS TOP PAGE #####
-@app.route('/<word>', methods=['GET'])
-def web_word(word):
-	return render_template('dict.html', word=word)
 
 ##### TOKENIZE PAGE #####
 @app.route("/tokenize", methods=['GET', 'POST'])
@@ -187,13 +183,13 @@ def web_example():
 		word = request.form['word'].strip() # get POST parameters: input sentences
 		userip = request.remote_addr
 		log_web('example', word, userip) # LOG SEARCH HISTORY
-		# get tweet
-		s = time.time()
+		### get tweet
+		#s = time.time()
 		tweet = get_tweet(word, limit=50, max_chr=60, highlighted=True)
-		print(time.time()-s)
-		# get nhk
+		#print(time.time()-s)
+		### get nhk
 		nhk = get_nhk(word, limit=50, highlighted=True)
-		print(time.time()-s)
+		#print(time.time()-s)
 		# make result json
 		result = {}
 		if tweet != None:
@@ -234,6 +230,11 @@ def web_request():
 		print(e)
 	return jsonify({'result':'success'})
 	
+
+##### SINGLE WORD SEARCH : SAME AS TOP PAGE #####
+@app.route('/<word>', methods=['GET'])
+def web_word(word):
+	return render_template('dict.html', word=word)
 
 ########################################################################################################################
 
