@@ -1,90 +1,111 @@
 {% extends "layout.html" %}
 {% block content %}
 
-<div class="container">
+<!-- TOKENIZE PAGE -->
+<script>
+	document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+	mode_example.classList.add('active');
+</script>
 
-	<div class="row my-3">
-    <div class="col-lg-12">
-			<div class="bs-component">
-        <h3>{{ text }} &nbsp;<button type="button" onclick="history.back();" class="btn btn-secondary">back</button></h3>
-      </div>
-    </div>
-	</div> 
+<!-- INPUT % RESULT CONTAINER -->
+<div class="container" id="container_example">
+	<div class="row">
+		<div class="col-lg-12">
+			<!-- INPUT FORM -->
+			<div class="card">
+				<div class="card-body">
+					<form onsubmit="return false; ajax_example();">
+						<h2>ตัวอย่างประโยค</h2>
+						สุ่มเลือกตัวอย่างจาก Twitter และ <a href="https://www3.nhk.or.jp/news/" target="_blank">NHK News Web</a> (max 50)
+						<div class="form-group">
+							<input type="text" class="form-control h3" id="input_word" style="height:2.0em; padding-left:0.3em; padding-top:0px;" v-model="word" placeholder="คำที่ค้นหา">
+						</div>
+						<button type="submit" class="btn btn-primary btn-round h5" onclick="ajax_example();">search</button>
+						<button type="reset" class="btn btn-round h5" onclick="input_word.value='';input_word.focus();">reset</button>
+					</form>
+				</div>
+			</div>
 
-  {% if is_concordance %}
-  <div class="row my-3">
-    <div class="col-lg-5">
-			<div class="bs-component">
-				<h3>Twitter {{ tweets|length }}件</h3>
-        <table class="table table-hover">
-          <tbody>
-            {% for tweet in tweets %}
-            <tr>
-              <td style="max-width: 15em;">{{ tweet[0] }}</td>
-              <td class="red" style="min-width: {{ charlength }}em;">{{ tweet[1] }}</td>
-              <td style="max-width: 15em;">{{ tweet[2] }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+			<!-- RESULT CARD -->
+			<div class="card card-nav-tabs" style="margin-top: 60px; display: none;" v-show="result != 0">
+				<!-- HEADER -->
+				<div class="card-header card-header-primary">
+					<div class="nav-tabs-navigation">
+						<div class="nav-tabs-wrapper">
+							<ul class="nav nav-tabs" data-tabs="tabs">
+								<li class="nav-item" v-show="result.tweet_num > 0">
+									<a class="nav-link active" href="#tab_twitter" data-toggle="tab">TWITTER</a>
+								</li>
+								<li class="nav-item" v-show="result.nhk_num > 0">
+									<a class="nav-link" href="#tab_nhk" data-toggle="tab">NHK</a>
+								</li>
+							</ul>
+						</div>
+					</div>
+				</div>
+				<!-- RESULT BODY -->
+				<div class="card-body mt-4">
+					<div class="tab-content">
+						<!-- TWITTER TAB -->
+						<div class="tab-pane active" id="tab_twitter" v-show="result.tweet">
+							<h4>RESULTS : <span v-html="result.tweet_num"></span></h4>
+							<table class="table">
+								<tr v-for="row in result.tweet"> 
+									<td v-html="row"></td>
+								</tr>
+							</table>
+						</div>
+						<!-- NHK TAB -->
+						<div class="tab-pane" id="tab_nhk" v-show="result.nhk">
+							<h4>RESULTS : <span v-html="result.nhk_num"></span></h4>
+							<table class="table">
+								<tr v-for="row in result.nhk"> 
+									<td v-html="row"></td>
+								</tr>
+							</table>
+						</div>
+					</div>
+				</div>
 			</div>
-    </div>
-    <div class="col-lg-7">
-			<div class="bs-component">
-				<h3>NHK News Web {{ nhks|length }}件</h3>
-        <table class="table table-hover">
-          <tbody>
-            {% for nhk in nhks %}
-            <tr>
-              <td style="max-width: 15em;">{{ nhk[0] }}</td>
-              <td class="red" style="min-width: {{ charlength }}em;">{{ nhk[1] }}</td>
-              <td style="max-width: 15em;">{{ nhk[2] }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-			</div>
-    </div>
-  </div>
-
-  {% else %}
-  <div class="row my-3">
-    <div class="col-lg-5">
-			<div class="bs-component">
-				<h3>Twitter {{ tweets|length }}件</h3>
-        <table class="table table-hover">
-          <tbody>
-            {% for tweet in tweets %}
-            <tr>
-              <td>{{ tweet|safe }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-			</div>
-    </div>
-    <div class="col-lg-7">
-			<div class="bs-component">
-				<h3>NHK News Web {{ nhks|length }}件</h3>
-        <table class="table table-hover">
-          <tbody>
-            {% for nhk in nhks %}
-            <tr>
-              <td>{{ nhk|safe }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-			</div>
-    </div>
+		</div>
 	</div>
-  {% endif %}
+</div>
 
+<!-- SEARCHING MODAL -->
+<div class="modal" id="searchingModal" tabindex="-1" role="dialog">
+	<div class="modal-dialog modal-dialog-centered" role="document">
+		<div class="modal-content">
+			<div class="modal-body">SEARCHING ...</div>
+		</div>
+	</div>
 </div>
 
 <script>
-	Array.from(document.getElementsByClassName('nav-item')).forEach(x => x.classList.remove('active'));
-	document.getElementById('mode_example').classList.add('active');
+	var vue = new Vue({
+		el:'#container_example',
+		data:{
+			word: '',
+			result: 0,
+			pos_check: false
+		}
+	})
+
+	function ajax_example(){
+		if(vue.word.trim()==''){input_word.focus(); return;}
+		$('#searchingModal').modal('show');
+		$.ajax({
+			data : {word: vue.word},
+			type: "POST",
+			dataType: "json",
+			cache: false,
+			timeout: 30000,
+			url : "/example"
+		}).done(function(returnData){
+			$('#searchingModal').modal('hide');
+			vue.result = returnData;
+		});
+	}
 </script>
+
 
 {% endblock %}

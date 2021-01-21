@@ -179,18 +179,30 @@ def web_tokenize():
 
 
 ##### EXAMPLE PAGE #####
-@app.route("/example", methods=['POST'])
+@app.route("/example", methods=['GET','POST'])
 def web_example():
-	text = request.form['text'].strip() # get POST parameters: input sentences
-	limit = int(request.form['limit']) # get POST parameters: maximum records
-	is_concordance = bool(request.form.get('concordance', False)) # get POST parameters: concordance or not
-	if is_concordance:
-		tweets = get_twitter(text, limit, zengo=False, concordance=True)
-		nhks = get_nhk(text, limit, concordance=True)
-	else:
-		tweets = get_twitter(text, limit, zengo=False, concordance=False, highlighted=True)
-		nhks = get_nhk(text, limit, concordance=False, highlighted=True)
-	return render_template('example.html', text=text, tweets=tweets, nhks=nhks, charlength=len(text)+2, is_concordance=is_concordance)
+	if request.method == 'GET':
+		return render_template('example.html')
+	elif request.method == 'POST':
+		word = request.form['word'].strip() # get POST parameters: input sentences
+		userip = request.remote_addr
+		log_web('example', word, userip) # LOG SEARCH HISTORY
+		# get tweet
+		s = time.time()
+		tweet = get_tweet(word, limit=50, max_chr=60, highlighted=True)
+		print(time.time()-s)
+		# get nhk
+		nhk = get_nhk(word, limit=50, highlighted=True)
+		print(time.time()-s)
+		# make result json
+		result = {}
+		if tweet != None:
+			result['tweet'] = tweet
+			result['tweet_num'] = len(tweet)
+		if nhk != None:
+			result['nhk'] = nhk
+			result['nhk_num'] = len(nhk)
+		return jsonify(result)
 
 
 ##### NHK PARALLEL CORPUS PAGE #####
@@ -469,58 +481,50 @@ def get_reply(text:str, cn, cursor):
 
 	return reply
 
-def get_twitter(query, limit, zengo=False, concordance=False, highlighted=False):
-	"""
-	return list of tweets
-	whole=False: only one sentence
-	concordance=True: split with query e.g. [I found, Google, is great]
-	"""
+def get_tweet(query, limit=30, max_chr=30, highlighted=True):
 	con, cursor = connect_sql('nozomibot')
-	# get tweet at random (3 times as limit in case)
-	cursor.execute(f"SELECT tweet, username FROM tweetjp WHERE tweet LIKE '%{query}%' ORDER BY RAND() LIMIT {limit*3};")
+	### get tweet at random 
+	cursor.execute(f"SELECT tweet, username FROM tweetjp WHERE tweet LIKE '%{query}%' ORDER BY RAND() LIMIT 100;")
 	result = list(cursor) # [[tweet, username],,]
-	if zengo == False:
-		sentence_pattern = re.compile(r'(?:^|[。\s!\?！？])([^。\s!\?！？]*?{}[^。\s!\?！？]*?(?:[。\s!\?！？]+|$))'.format(query))
-	else:
-		sentence_pattern = re.compile(r'.*{}.*'.format(query))
-		#sentence_pattern = re.compile(r"""(?<=^)|(?<=[、。\s!\?！？…]) # the initial separator
-		#			(?:[^、。\s!\?！？…]+?[、。\s!\?！？…]+){0,1} # sentence before query
-		#			[^、。\s!\?！？…]*?""" + query + r"""[^、。\s!\?！？…]*?(?:[、。\s!\?！？…]+?|$)
-		#			(?:[^、。\s!\?！？…]+?[、。\s!\?！？…]+){0,1} # sentence after query
-		#			(?:[、。\s!\?！？…]+|$)""", re.X)
-		
+	if len(result) == 0:
+		return None
+	#sentence_pattern = re.compile(r"""(?<=^)|(?<=[、。\s!\?！？…]) # the initial separator
+	#			(?:[^、。\s!\?！？…]+?[、。\s!\?！？…]+){0,1} # sentence before query
+	#			[^、。\s!\?！？…]*?""" + query + r"""[^、。\s!\?！？…]*?(?:[、。\s!\?！？…]+?|$)
+	#			(?:[^、。\s!\?！？…]+?[、。\s!\?！？…]+){0,1} # sentence after query
+	#			(?:[、。\s!\?！？…]+|$)""", re.X)
+	sentence_pattern = re.compile(r'(?:^|[。\s!\?！？])([^。\s!\?！？]*?{}[^。\s!\?！？]*?(?:[。\s!\?！？]+|$))'.format(query))
 	candidates = set()
 	for tweet, _ in result:
-		if len(tweet) < 30:
-			candidates.add(tweet) # if short, add whole text
+		if len(tweet) < max_chr:
+			candidates.add(tweet) # if the tweet is shorter max_chr, add whole text
 		else:
-			candidates |= set(re.findall(sentence_pattern, tweet))
+			candidates |= set(re.findall(sentence_pattern, tweet)) # one tweet may contain multiple matched sentences
+	candidates = set([x.strip() for x in candidates if len(x.strip()) >= len(query)+2]) # exclude too short sentences
 	if len(candidates) > limit:
 		candidates = list(candidates)[:limit]
-	if highlighted==True:
+	if highlighted:
 		candidates = [highlight(cand, query) for cand in candidates]
-	if concordance==True:
-		candidates = [re.split(r'(?={0})|(?<={0})'.format(query), cand, 2) for cand in candidates]
-	cursor.close(); con.close()
+	con.close()
 	return candidates
 
-def get_nhk(query, limit, concordance=False, highlighted=False):
-	con, cursor = connect_sql('jtdic')
-	# get tweet at random (3 times as limit in case)
-	cursor.execute(f"SELECT title, article FROM nhkweb WHERE article LIKE '%{query}%' ORDER BY RAND() LIMIT {limit*3};")
-	result = list(cursor) # [[title, article],,]
+def get_nhk(query, limit=30, highlighted=True):
+	con, cursor = connect_sql('nozomibot')
+	### get tweet at random 
+	cursor.execute(f"SELECT id, article FROM nhkweb WHERE article LIKE '%{query}%' ORDER BY RAND() LIMIT 200;")
+	result = list(cursor) # [[id, article],,]
+	if len(result) == 0:
+		return None
 	sentence_pattern = re.compile(r'(?:^|[。\s!\?！？])([^。\s!\?！？]*?{}[^。\s!\?！？]*?(?:[。\s!\?！？]+|$))'.format(query))
 	candidates = set()
 	for _, article in result:
 		candidates |= set(re.findall(sentence_pattern, article))
-	candidates = set([x.strip() for x in candidates if len(x.strip()) >= len(query)+2]) # exclude too short tweets
+	candidates = set([x.strip() for x in candidates if len(x.strip()) >= len(query)+2 and len(x)>10]) # exclude too short sentences
 	if len(candidates) > limit:
-		candidates = random.sample(candidates, limit)
-	if highlighted==True:
+		candidates = list(candidates)[:limit]
+	if highlighted:
 		candidates = [highlight(cand, query) for cand in candidates]
-	if concordance==True:
-		candidates = [re.split(r'(?={0})|(?<={0})'.format(query), cand, 2) for cand in candidates]
-	cursor.close(); con.close()
+	con.close()
 	return candidates
 
 def get_time_now():

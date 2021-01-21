@@ -26,8 +26,8 @@
 					<ol>
 						<li><a href="/">Dictionary</a> : พจนานุกรมญี่ปุ่น-ไทย (max 15 คำ) พร้อมคำพ้องเสียง การผันรูป accent ความถี่ ข้อมูลคันจิ</li>
 						<li><a href="/tokenize">Tokenize</a> : การตัดประโยคเป็นคำๆ พร้อมวิธีอ่าน ประเภทคำ ความหมาย</li>
-						<li><a href="/example">Example</a> : ค้นหาตัวอย่างประโยคจาก Twitter (ภาษาที่ไม่เป็นทางการ) และ NHK News Web (ภาษาที่เป็นทางการ)</li>
-						<li><a href="/nhk">NHK Corpus</a> : ค้นหาคู่บทความ NHK News Web และ NHK News Web Easy ซึ่งเนื้อหาเดียวกัน</li>
+						<li><a href="/example">Example</a> : ค้นหาตัวอย่างประโยคจาก Twitter (ภาษาที่ไม่เป็นทางการ, 2 ล้านทวีต) และ <a href="https://www3.nhk.or.jp/news/" target="_blank">NHK News Web</a> (ภาษาที่เป็นทางการ, 1.5 แสนบทความ)</li>
+						<li><a href="/nhk">NHK Corpus</a> : ค้นหาคู่บทความ <a href="https://www3.nhk.or.jp/news/" target="_blank">NHK News Web</a> และ <a href="https://www3.nhk.or.jp/news/easy/" target="_blank">NHK News Web Easy</a> (ข่าวที่เขียนเป็นภาษาญี่ปุ่นง่าย) ซึ่งเนื้อหาเดียวกัน</li>
 					</ol>
 				</div>
 				<div class="modal-footer">
@@ -40,9 +40,9 @@
 
 <!-- INPUT % RESULT CONTAINER -->
 <div class="container" id="container_main">
-	<!-- INPUT FORM -->
 	<div class="row">
 		<div class="col-lg-12">
+			<!-- INPUT FORM -->
 			<div class="card">
 				<div class="card-body">
 					<form onsubmit="return false; ajax_dict();">
