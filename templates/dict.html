@@ -48,7 +48,7 @@
 					<form onsubmit="return false; ajax_dict();">
 						<h2>พจนานุกรม</h2>
 						<div class="form-group">
-							<input type="text" class="form-control h3" id="input_word" v-model="word" placeholder="คำที่ค้นหา">
+							<input type="text" class="form-control h3" id="input_word" style="height:2.0em; padding-left:0.3em; padding-top:0px;" v-model="word" placeholder="คำที่ค้นหา">
 						</div>
 						<button type="submit" class="btn btn-primary btn-round h5" onclick="ajax_dict();">search</button>
 						<button type="reset" class="btn btn-round h5" onclick="input_word.value='';input_word.focus();">reset</button>
@@ -273,6 +273,8 @@
 			timeout: 3000,
 			url : "/request"
 		}).done(function(returnData){
+			vue_request.comment = '';
+			vue_request.name = '';
 			alert('Thank you for your feedback!')
 		});
 	}
@@ -280,7 +282,6 @@
 	window.onload = function(){
 		var WORD = (( word|tojson ));
 		if(WORD != ''){
-			input_word.focus();
 			vue.word = WORD;
 			ajax_dict();
 		}

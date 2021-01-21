@@ -207,7 +207,7 @@ def get_rank(word):
 
 ########## GET PARALLEL CORPUS ##########
 
-NHK_PARALLEL = pd.read_json('data/nhk_parallel.json')
+NHK_PARALLEL = pd.read_json('data/nhkparallel.json')
 def get_parallel(genre:str, keyword:str):
     mask = (NHK_PARALLEL.genre.str.contains(genre)) & (NHK_PARALLEL.article_easy_ruby.str.contains(keyword) | NHK_PARALLEL.article.str.contains(keyword))
     df = NHK_PARALLEL[mask].sort_values('datePublished', ascending=False)

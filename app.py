@@ -98,7 +98,7 @@ def after_request(response):
 ###  NOZOMIBOT WEB PAGE 
 ################################################################################
 
-##### TOP PAGE #####
+##### TOP PAGE : DICTIONARY & FEEDBACK #####
 @app.route("/", methods=['GET', 'POST'])
 def top_page():
 	if request.method == 'GET':
@@ -145,10 +145,11 @@ def top_page():
 		else:
 			return jsonify({'meaning':meaning, 'conj':conj, 'accent':accent, 'freq':freq, 'kanji':kanjis, 'none':'false'})
 
-##### SINGLE WORD SEARCH #####
+##### SINGLE WORD SEARCH : SAME AS TOP PAGE #####
 @app.route('/<word>', methods=['GET'])
 def web_word(word):
 	return render_template('dict.html', word=word)
+
 
 ##### TOKENIZE PAGE #####
 @app.route("/tokenize", methods=['GET', 'POST'])
@@ -158,35 +159,23 @@ def web_tokenize():
 	elif request.method == 'POST':
 		text = request.form['text'].strip() # get POST parameters: input sentences
 		roman = romanize(text)
-		words_need_meaning = []
 		tokens = tokenize(text) # ["住ん", "スン", "スム", "住む", "動詞-一般", "五段-マ行", "連用形-撥音便", "1"]
-		tokens_thai = tokenize(text, pos_thai=True)
-		for token in tokens: # 3.lemma 4.pos 
-			if not token[4].startswith('助') and re.match(r'\w+$', token[3]) and token[3] not in words_need_meaning :
-				words_need_meaning.append(token[3])
-		meanings = [get_word_exact(word) for word in words_need_meaning]
-		new_tokens = []
+		tokens_thai = tokenize(text, pos_thai=True) # ['住ん', 'スン', '住む', 'กริยากลุ่ม1']
+		# process POS tag
+		new_tokens = [] # [[SR, Phone, Lemma, PoS],...]
 		for token in tokens:
-			new_pos = token[4].split('-')[:2] # 名詞-固有名詞-人名-姓 -> [名詞, 固有名詞]
+			new_pos = token[4].split('-')[:2] # e.g. '名詞-固有名詞-人名-姓' -> [名詞, 固有名詞]
 			if token[4].startswith('動詞'):
-				new_pos.append(token[5].split('-')[0])
-			new_tokens.append([token[0], token[1], token[3], '-'.join(new_pos)]) # [SR, Phone, Lemma, PoS]
-		"""
-		tokens = tokenize(text, pos_thai=True) # only 4 results: [0.surface, 1.phonemic, 2.lemma, 3.pos]
-		for token in tokens:
-			if (not token[3].startswith('คำช่วย')) and re.match(r'\w+$', token[2]) and (token[2] not in words_need_meaning):
-				words_need_meaning.append(token[2])
-		meanings = [get_word_exact(word) for word in words_need_meaning] # 3D LIST
-		"""
+				new_pos.append(token[5].split('-')[0]) # e.g. '五段-マ行' -> [動詞, 一般, 五段]
+			new_tokens.append([token[0], token[1], token[3], '-'.join(new_pos)]) 
 		
 		### PRINT FOR DEBUGGING ###
-		print('\nROMAN:', roman, '\n')
+		#print('\nROMAN:', roman, '\n')
 
-		return jsonify({'tokens':new_tokens, 'tokens2':tokens_thai, 'roman':roman, 'meanings':meanings})
-		#return render_template('tokenize.html', text=text, tokens=tokens, roman=roman,
-			#is_detail=is_detail, meanings=meanings, words_with_link=words_need_meaning)
+		return jsonify({'tokens':new_tokens, 'tokens2':tokens_thai, 'roman':roman})
 
-##### EXAMPLE #####
+
+##### EXAMPLE PAGE #####
 @app.route("/example", methods=['POST'])
 def web_example():
 	text = request.form['text'].strip() # get POST parameters: input sentences
@@ -200,7 +189,8 @@ def web_example():
 		nhks = get_nhk(text, limit, concordance=False, highlighted=True)
 	return render_template('example.html', text=text, tweets=tweets, nhks=nhks, charlength=len(text)+2, is_concordance=is_concordance)
 
-##### NHK PARALLEL CORPUS #####
+
+##### NHK PARALLEL CORPUS PAGE #####
 @app.route("/nhk", methods=['GET','POST'])
 def web_nhkweb():
 	if request.method == 'GET':
@@ -212,18 +202,17 @@ def web_nhkweb():
 		return jsonify({'article':articles, 'nums':len(articles)})
 
 
-##### REQUEST & COMMENT #####
+##### REQUEST & COMMENT AJAX #####
 @app.route("/request", methods=['POST'])
 def web_request():
 	text = request.form['comment'].strip() # get POST parameters: text
 	name = request.form['name'].strip() # get POST parameters: username
 	try:
 		con, cursor = connect_sql('nozomibot')
-		date_now = str(datetime.now(timezone(timedelta(hours=7)))) 
+		date_now = get_time_now()
 		cursor.execute(f"INSERT INTO feedback (date, feedback, name) VALUES (%s, %s, %s);", (date_now, text, name))
 		con.commit()
 		con.close()
-		print('SUCCESS')
 	except Exception as e:
 		print(e)
 	return jsonify({'result':'success'})
@@ -524,6 +513,13 @@ def get_nhk(query, limit, concordance=False, highlighted=False):
 		candidates = [re.split(r'(?={0})|(?<={0})'.format(query), cand, 2) for cand in candidates]
 	cursor.close(); con.close()
 	return candidates
+
+def get_time_now():
+	tz = time.tzname[0]
+	if timezone in ['UTC']:
+		return str(datetime.now()+timedelta(hours=7)).split('.')[0]
+	else:
+		return str(datetime.now()).split('.')[0]
 
 
 ###########################################################
