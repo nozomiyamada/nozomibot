@@ -283,14 +283,6 @@ tweet (space) คำ
 
 หากเจอข้อผิดพลาดหรือ bug ต่างๆ กรุณารบกวนแจ้งให้ทราบโดยพิมพ์ "feedback เมสเสจ" หรือติดต่อทาง Facebook (ชื่อ: Nozomi Ymd) ด้วยนะครับ ขอบคุณครับ"""
 
-def connect_sql(database:str):
-	config = {'user': 'nozomi',
-		'password': 'database',
-		'host': 'chula.cd7wwaejjsg3.ap-southeast-1.rds.amazonaws.com',
-		'database': database}
-	con = mysql.connector.connect(**config)
-	cursor = con.cursor()
-	return con, cursor
 
 def get_reply(text:str, cn, cursor):
 	# mode select
