@@ -243,7 +243,6 @@ def callback():
 def handle_message(event):
 	### RECEIVE MESSAGE
 	text = str(event.message.text).strip()
-	text = re.sub(r'[\s\t]+', ' ', text) # multiple spaces -> one half space
 
 	### GET MODE & REPLY FROM TEXT
 	mode, reply = get_reply(text)

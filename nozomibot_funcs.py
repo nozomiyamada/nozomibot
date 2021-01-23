@@ -96,7 +96,7 @@ DESCRIPTION = """< วิธีใช้ >
 พิมพ์: วิกิ (space) คำ
 เช่น "วิกิ バンコク"
 
-หากพบข้อผิดพลาดหรือ bug ต่างๆ กรุณาแจ้งให้ทราบด้วยการพิมพ์ "feedback ข้อความของคุณ" เช่น "feedback คำว่า "สวัสดี" สะกดผิดครับ" หรือสามารถติดต่อทาง Facebook Page ได้โดยตรงครับ ขอบคุณครับ
+หากพบข้อผิดพลาดหรือ bug ต่างๆ กรุณาแจ้งให้ทราบด้วยการพิมพ์ "feedback ข้อความของคุณ" เช่น "feedback คำว่า สวัสดี สะกดผิดครับ"
 
 ---
 
@@ -106,6 +106,7 @@ https://www.nozomi.ml/
 https://nzmbot.herokuapp.com/"""
 
 def get_reply(text:str):
+	text = re.sub(r'[\s\t]+', ' ', text) # multiple spaces -> one half space
 	# mode select
 	if re.match(r'(help|使い方|วิธีใช้|ใช้ยังไง|ヘルプ)\s*$', text, flags=re.I):
 		MODE = '0.HELP'
@@ -143,7 +144,7 @@ def get_reply(text:str):
 	elif len(text) < 40:
 		MODE = '1.DICT'
 	else:
-		MODE = 'LONG MESSAGE' # -> no reeply or reply manually
+		MODE = 'LONG MESSAGE' # -> no reply or reply manually
 
 	##### EXECUTE EACH MODE #####
 	if MODE == '0.HELP':
@@ -153,7 +154,7 @@ def get_reply(text:str):
 		try:
 			reply = get_word(text)
 			if reply == None:
-				reply = 'ขออภัยที่หาไม่เจอในดิกครับ\n(พิมพ์ help จะแสดงวิธีใช้)'
+				reply = 'feedback ขออภัยไม่พบคำนี้ในพจนานุกรมครับ\n(พิมพ์ "help" จะแสดงวิธีใช้)'
 		except:
 			reply = 'server error รอสักครู่นะครับ'
 
