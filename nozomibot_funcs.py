@@ -1,11 +1,33 @@
-import re, requests, json, random
-from JpProcessing import yomikata, hira2kata, kata2hira, is_only_kana
-from bs4 import BeautifulSoup
-import urllib.parse
+import re, requests, json, os, random, csv, time, urllib.parse, mysql.connector
 import pandas as pd
-pd.set_option('mode.chained_assignment', None)
+pd.set_option('mode.chained_assignment', None) # make warning invisible
+from bs4 import BeautifulSoup
+from datetime import datetime, timedelta, timezone
+from JpProcessing import yomikata, hira2kata, kata2hira, is_only_kana
 
 
+##### ENVIRONMENT VARIABLES #####
+from dotenv import load_dotenv
+load_dotenv()
+CHANNEL_ACCESS_TOKEN = os.environ["CHANNEL_ACCESS_TOKEN"]
+CHANNEL_SECRET = os.environ["CHANNEL_SECRET"]
+
+SQL_HOSTNAME = os.environ["SQL_HOSTNAME"]
+SQL_USERNAME = os.environ["SQL_USERNAME"]
+SQL_PASSWORD = os.environ["SQL_PASSWORD"]
+
+
+##### CONNECT SQL FUNCTION #####
+def connect_sql(database:str):
+	config = {'user': SQL_USERNAME,
+		'password': SQL_PASSWORD,
+		'host': SQL_HOSTNAME,
+		'database': database}
+	con = mysql.connector.connect(**config)
+	cursor = con.cursor()
+	return con, cursor 
+
+##### FUNCTION TO FILL SPACE FOR LINE OUTPUT #####
 def toNchr(morph:str, n=3) -> str:
     """
     function for adjusting result columns (for Linebot)
@@ -17,8 +39,308 @@ def toNchr(morph:str, n=3) -> str:
     """
     return morph + (n-len(morph)) * '　'
 
+def get_time_now():
+	tz = time.tzname[0]
+	if tz == 'UTC': # on EC2
+		return str(datetime.now()+timedelta(hours=7)).split('.')[0]
+	else: # on Local
+		return str(datetime.now()).split('.')[0]
 
-########## GET WORD FROM DICTIONARY ##########
+################################################################################
+###  NOZOMIBOT MESSENGER CORE 
+################################################################################
+
+DESCRIPTION = """< วิธีใช้ >
+
+- nozomibot Web Version 
+(มีสองที่ กดเมนูด้านล่างก็เข้าไปเว็บได้)
+https://www.nozomi.ml/
+https://nzmbot.herokuapp.com/
+
+1. พจนานุกรม (JTDic)
+พิมพ์คำศัพท์ภาษาญี่ปุ่นหรือคำศัพท์ไทยเท่านั้น
+
+2. การตัดคำ
+ตัด (space) ประโยค
+เช่น "ตัด 昨日の夜は何を食べましたか"
+
+3. การผันรูป
+ผัน (space) กริยา
+เช่น "ผัน 食べた"
+
+4. วิธีอ่าน (Roman)
+อ่าน (space) ประโยค
+เช่น "อ่าน 昨日NHKを見ましたか"
+
+5. คันจิดิก
+คันจิ (space) คันจิตัวเดียว
+เช่น "คันจิ 望"
+
+6. accent
+accent (space) คำ
+เช่น "accent 山田"
+
+7. สุ่มเลือกบทความ NHK News Easy
+พิมพ์ "NHK" เท่านั้น
+
+8. ตัวอย่างประโยคจาก NHK News
+ตัวอย่าง (space) คำ
+เช่น "ตัวอย่าง 発表"
+
+9. ตัวอย่างประโยคจาก Twitter
+tweet (space) คำ
+เช่น "tweet コロナ"
+
+10. wikipedia
+วิกิ (space) คำ
+เช่น "วิกิ バンコク"
+
+หากเจอข้อผิดพลาดหรือ bug ต่างๆ กรุณารบกวนแจ้งให้ทราบโดยพิมพ์ "feedback เมสเสจ" หรือติดต่อทาง Facebook Page ด้วยนะครับ ขอบคุณครับ"""
+
+def get_reply(text:str, con, cursor):
+	# mode select
+	if re.match(r'(help|使い方|วิธีใช้|ใช้ยังไง|ヘルプ)\s*$', text, flags=re.I):
+		MODE = '0.HELP'
+	elif re.match(r'(分けて|切って|token(ize)?|ตัด) ', text, flags=re.I):
+		MODE = '2.TOKENIZE'
+	elif re.match(r'(活用|conj(ugate)?|ผัน(รูป)?) ', text, flags=re.I):
+		MODE = '3.CONJ'
+	elif re.match(r'(อ่าน(ว่า)?|読み(方)?|โรมัน|ローマ字|roman) ', text, flags=re.I):
+		MODE = '4.ROMAN'
+	elif re.match(r'(漢字|คันจิ|kanji) .+$', text, flags=re.I):
+		MODE = '5.KANJI'
+	elif re.match(r'(accent|アクセント) ', text, flags=re.I):
+		MODE = '6.ACCENT'
+	elif re.match(r'NHK$', text, flags=re.I):
+		MODE = '7.NHK-EASY'
+	elif re.match(r'(corpus|例文|ตัวอย่าง) ',text, flags=re.I):
+		MODE = '8.EXAMPLE-NHK'
+	elif re.match(r'(twitter|tweet|ツイッター|ツイート|ทวีต) ',text, flags=re.I):
+		MODE = '9.EXAMPLE-TWITTER'
+	elif re.match(r'(วิกิ|wiki|ウィキ) ', text, flags=re.I):
+		MODE = '10.WIKI'
+	elif re.match(r'(สวัสดี|สบายดีไหม|สบายดีมั้ย|หวัดดี)\s*$', text):
+		MODE = 'SAWASDEE'
+	elif re.search(r'(((รัก|ชอบ)(คุณ|เ[ธท]อ))|(love you))\b', text, flags=re.I):
+		MODE = 'LOVEYOU'
+	elif re.match(r'(jojo|giogio|ジョジョ|โจโจ้)\s*$', text, flags=re.I):
+		MODE = 'JOJO'
+	elif re.match(r'feedback', text, flags=re.I):
+		MODE = 'FEEDBACK'
+	elif re.search(r'พี่โน|โนโซมิ', text):
+		MODE = 'P-NO'
+	elif len(text.split(' ')) > 1 and not \
+		re.match(r'(help|使い方|วิธีใช้|ใช้ยังไง|ヘルプ|分けて|切って|token(ize)?|ตัด|活用|conj(ugate)?|ผัน(รูป)?|อ่าน(ว่า)?|読み(方)?|โรมัน|ローマ字|roman|漢字|คันจิ|kanji|accent|アクセント|NHK|corpus|例文|ตัวอย่าง|twitter|tweet|ツイッター|ツイート|ทวีต|วิกิ|wiki|ウィキ|สวัสดี|สบายดีไหม|สบายดีมั้ย|หวัดดี|jojo|giogio|ジョジョ|โจโจ้|feedback|พี่โน)', text, flags=re.I):
+		MODE = 'EROOR'
+	else:
+		MODE = '1.DICT'
+
+	##### EXECUTE EACH MODE #####
+	if MODE == '0.HELP':
+		reply = DESCRIPTION
+
+	elif MODE == '1.DICT':
+		try:
+			reply = get_word(text)
+			if reply == None:
+				reply = 'ขอโทษที่หาไม่เจอในดิกครับ\n(พิมพ์ help จะแสดงวิธีใช้)'
+		except:
+			reply = 'server error รอสักครู่นะครับ'
+
+	elif MODE == '2.TOKENIZE':
+		text = text.split(' ', 1)[1]
+		tokens = tokenize(text, pos_thai=True) # token = [surface, phone, lemma, pos]
+		if len(tokens) < 40:
+			reply = '\n'.join([f'{toNchr(token[0])} {toNchr(token[1])} {toNchr(token[2])} {token[3]}' for token in tokens]) # SR, phone, lemma, pos
+		else:
+			reply = 'ประโยคยาวเกินไปครับ'
+
+	elif MODE == '3.CONJ':
+		text = text.split(' ', 1)[1]
+		r = conjugate(text)
+		if r == None:
+			reply = 'ผันไม่ได้ครับ ต้องเป็นกริยาหรือ i-adj เท่านั้น'
+		elif len(r) == 10: # verb with
+			reply = f'辞書形:　　 {r[0]}\nない形:　　 {r[1]}\nなかった形: {r[2]}\nます形:　　 {r[3]}\nて形:　　　 {r[4]}\nた形:　　　 {r[5]}\nば形:　　　 {r[6]}\n命令形:　　 {r[7]}\n意向形:　　 {r[8]}\n可能形:　　 {r[9]}'
+		elif len(r) == 8:  # adj
+			reply = f'辞書形:　　 {r[0]}\nない形:　　 {r[1]}\nなかった形: {r[2]}\nです形:　　 {r[3]}\nて形:　　　 {r[4]}\nた形:　　　 {r[5]}\nば形:　　　 {r[6]}\n副詞化:　　 {r[7]}' 
+
+	elif MODE == '4.ROMAN':
+		text = text.split(' ', 1)[1]
+		try:
+			reply = romanize(text)
+		except:
+			reply = 'ขอโทษที่เปลี่ยนไม่ได้ครับ'
+
+	elif MODE == '5.KANJI':
+		kanji = text.split(' ', 1)[1]
+		if len(kanji) > 1:
+			reply = "พิมพ์คันจิตัวเดียวนะครับ"
+		elif is_kanji(kanji) == False:
+			reply = "พิมพ์คันจินะครับ"
+		else:
+			reply = get_kanji(kanji)
+
+	elif MODE == '6.ACCENT':
+		word = text.split(' ', 1)[1]
+		reply = get_accent(word)
+		if reply == None:
+			reply = 'ขอโทษที่หาไม่เจอ accent ในดิกครับ'
+
+	elif MODE == '7.NHK-EASY':
+		date, title, article = get_nhkeasy()
+		reply = f"{date}\n{title}\n\n{article}"
+
+	elif MODE == '8.EXAMPLE-NHK':
+		word = text.split(' ')[1]
+		if len(text.split(' ')) >= 3: # 3rd argument = num of result e.g. NHK 発表 10
+			try:
+				limit = int(text.split(' ')[2])
+			except:
+				limit = 5
+			if limit > 100:
+				limit = 100
+		else:
+			limit = 5
+		result = get_nhk(word, limit, highlighted=False)
+		if result == None:
+			reply = 'ขอโทษที่หาไม่เจอในคลังข้อมูลครับ'
+		else:
+			reply = ''
+			for sentence in result:
+				reply += '・' + sentence.strip() + '\n\n'
+			reply = reply.strip()
+
+	elif MODE == '9.EXAMPLE-TWITTER':
+		query = text.split(' ')[1]
+		if len(text.split(' ')) >= 3: # 3rd argument = num of result e.g. tweet 発表 10
+			try:
+				limit = int(text.split(' ')[2])
+			except:
+				limit = 5
+			if limit > 100:
+				limit = 100
+		else:
+			limit = 5
+		result = get_tweet(query, limit, highlighted=False)
+		if result == None:
+			reply = 'ขอโทษที่หาไม่เจอในคลังข้อมูลครับ'
+		else:
+			reply = ''
+			for tweet in result:
+				reply += '・' + tweet.strip() + '\n\n'
+			reply = reply.strip()
+
+	elif MODE == '10.WIKI':
+		word = text.split(' ', 1)[1]
+		reply = get_wiki(word)
+
+	elif MODE == 'SAWASDEE':
+		reply = random.choice(['สวัสดีครับ','หวัดดี','เป็นไงบ้าง','ไปไหนมา','อ้วนขึ้นป่าว','ทำไรอยู่','สบายดีไหม','อยากกินหมูกระทะ','คิดถึงจังเลย','ฮัลโหล','หิวแล้วอ่ะ','เย่แล้ววว','ว้าวซ่า','กินข้าวรึยัง','กักตัวอยู่ไหม'])
+	
+	elif MODE == 'LOVEYOU':
+		reply = random.choice(['ผมก็รักเธอเหมือนกัน','เขินจัง','อยู่ดีๆ อะไรนะ','ขอคิดก่อน','เป็นเพื่อนกันดีกว่า','ผมมีแฟนแล้ว ขอโทษ','ลองคบกันไหม','ยินดีครับ'])
+
+	elif MODE == 'JOJO':
+		with open('data/jojo.csv', 'r', encoding='utf8') as f:
+			data = list(csv.reader(f))
+			line = random.choice(data)
+		reply = f'{line[0]}\n\n - {line[1]}, Part {line[2]}'
+
+	elif MODE == 'FEEDBACK':
+		reply = 'ขอบคุณมากที่ส่ง feedback และช่วยพัฒนาระบบครับ❤️'
+
+	elif MODE == 'P-NO':
+		reply = random.choice(['พี่โนเป็นคนสุดหล่อ','พี่โนเป็นคนใจดีสุดๆ','พี่โนเป็นคนสุดยอด','พี่โนชอบสเวนเซ่น','พี่โนชอบกินก๋วยเตี๋ยวเรือ','พี่โนเป็นทาสแมว','พี่โนกักตัวอยู่่','เลี้ยงข้าวพี่โนหน่อย','พี่โนชอบโจโจ้','ราเม็งญี่ปุ่นต้องเค็มๆ','ช่วงนี้อ้วนขึ้น','นกไปแล้ว พี่โนกำลังเศร้าอยู่'])
+	
+	elif MODE == 'EROOR':
+		reply = "น่าจะใช้ผิดครับ พิมพ์ว่า help หรือกดเมนูด้านล่างจะแสดงวิธีใช้"
+
+	return MODE, reply
+
+
+################################################################################
+###  FUNCTIONS TO GET INFORMATION
+################################################################################
+
+########## GET RANKING & FREQ ##########
+
+# ['lemma','rank','lForm','pos','core_pmw']
+BCCWJ_RANK = pd.read_csv('data/bccwj_rank.csv') 
+def get_rank(word):
+    yomi = hira2kata(yomikata(word))
+    df = BCCWJ_RANK[(BCCWJ_RANK.lemma.str.contains(word)) | (BCCWJ_RANK.lForm == yomi)]
+    if len(df) >= 2:
+        result = df.iloc[0:3].values.tolist()
+        # if lForm and pos are completely identical, drop
+        if len(result) ==3 and result[2][2:4] == result[0][2:4]:
+            result = result[:2]
+        if result[1][2:4] == result[0][2:4]:
+            result = [result[0]]
+    elif len(df) == 1:
+        result = [df.iloc[0].tolist()]
+    else:
+        return None
+    # PoS Thai
+    pos_mapping = {'動詞':'กริยา','名詞':'คำนาม','形容詞':'i-adj','助詞':'คำช่วย','助動詞':'คำช่วยที่ผันรูป','副詞':'adv','接頭辞':'prefix','接尾辞':'suffix',
+        '連体詞':'คำขยายคำนาม','記号':'เครื่องหมาย','感動詞':'คำอุทาน','フィラー':'filler','接続詞':'คำเชื่อม','その他':'others'}
+    for r in result:
+        if r[3] in pos_mapping:
+            r[3] += f' {pos_mapping[r[3]]}'
+    return [list(map(str, row)) for row in result] # stringify
+
+
+##########  EXAMPLE OF TWITTER  ##########
+def get_tweet(query, limit=100, max_chr=35, highlighted=True):
+	con, cursor = connect_sql('nozomibot')
+	### get tweet at random 
+	cursor.execute(f"SELECT tweet, username FROM tweetjp WHERE tweet LIKE '%{query}%' LIMIT 300;")
+	result = list(cursor) # [[tweet, username],,]
+	if len(result) == 0:
+		return None
+	#sentence_pattern = re.compile(r"""(?<=^)|(?<=[、。\s!\?！？…]) # the initial separator
+	#			(?:[^、。\s!\?！？…]+?[、。\s!\?！？…]+){0,1} # sentence before query
+	#			[^、。\s!\?！？…]*?""" + query + r"""[^、。\s!\?！？…]*?(?:[、。\s!\?！？…]+?|$)
+	#			(?:[^、。\s!\?！？…]+?[、。\s!\?！？…]+){0,1} # sentence after query
+	#			(?:[、。\s!\?！？…]+|$)""", re.X)
+	sentence_pattern = re.compile(r'(?:^|[。\s!\?！？])([^。\s!\?！？]*?{}[^。\s!\?！？]*?(?:[。\s!\?！？]+|$))'.format(query))
+	candidates = set()
+	for tweet, _ in result:
+		if len(tweet) < max_chr:
+			candidates.add(tweet) # if the tweet is shorter max_chr, add whole text
+		else:
+			candidates |= set(re.findall(sentence_pattern, tweet)) # one tweet may contain multiple matched sentences
+	candidates = set([x.strip() for x in candidates if len(x.strip()) >= len(query)+2]) # exclude too short sentences
+	if len(candidates) > limit:
+		candidates = random.sample(list(candidates), limit)
+	if highlighted:
+		candidates = [highlight(cand, query) for cand in candidates]
+	con.close()
+	return candidates
+
+
+##########  EXAMPLE OF NHK NEWS WEB  ##########
+def get_nhk(query, limit=100, highlighted=True):
+	con, cursor = connect_sql('nozomibot')
+	### get tweet at random 
+	cursor.execute(f"SELECT id, article FROM nhkweb WHERE article LIKE '%{query}%' LIMIT 300;")
+	result = list(cursor) # [[id, article],,]
+	if len(result) == 0:
+		return None
+	sentence_pattern = re.compile(r'(?:^|[。\s!\?！？])([^。\s!\?！？]*?{}[^。\s!\?！？]*?(?:[。\s!\?！？]+|$))'.format(query))
+	candidates = set()
+	for _, article in result:
+		candidates |= set(re.findall(sentence_pattern, article))
+	candidates = set([x.strip() for x in candidates if len(x.strip()) >= len(query)+2 and len(x)>10]) # exclude too short sentences
+	if len(candidates) > limit:
+		candidates = random.sample(list(candidates), limit)
+	if highlighted:
+		candidates = [highlight(cand, query) for cand in candidates]
+	con.close()
+	return candidates
+
+
+##########  GET WORD FROM DICTIONARY  ##########
 
 # load dictionary [yomi,word,thai]
 WORD_DICT = pd.read_csv('data/jtdic.csv', encoding='utf8').fillna('-') # nan -> "-"
@@ -180,31 +502,6 @@ def accent_to_html(accent:str) -> str:
     accent = re.sub(r'(?<!<)([/\\])', r'<span class="accent_bar">\1</span>', accent)
     return accent
 
-########## GET RANKING & FREQ ##########
-
-# ['lemma','rank','lForm','pos','core_pmw']
-BCCWJ_RANK = pd.read_csv('data/bccwj_rank.csv') 
-def get_rank(word):
-    yomi = hira2kata(yomikata(word))
-    df = BCCWJ_RANK[(BCCWJ_RANK.lemma.str.contains(word)) | (BCCWJ_RANK.lForm == yomi)]
-    if len(df) >= 2:
-        result = df.iloc[0:3].values.tolist()
-        # if lForm and pos are completely identical, drop
-        if len(result) ==3 and result[2][2:4] == result[0][2:4]:
-            result = result[:2]
-        if result[1][2:4] == result[0][2:4]:
-            result = [result[0]]
-    elif len(df) == 1:
-        result = [df.iloc[0].tolist()]
-    else:
-        return None
-    # PoS Thai
-    pos_mapping = {'動詞':'กริยา','名詞':'คำนาม','形容詞':'i-adj','助詞':'คำช่วย','助動詞':'คำช่วยที่ผันรูป','副詞':'adv','接頭辞':'prefix','接尾辞':'suffix',
-        '連体詞':'คำขยายคำนาม','記号':'เครื่องหมาย','感動詞':'คำอุทาน','フィラー':'filler','接続詞':'คำเชื่อม','その他':'others'}
-    for r in result:
-        if r[3] in pos_mapping:
-            r[3] += f' {pos_mapping[r[3]]}'
-    return [list(map(str, row)) for row in result] # stringify
 
 ########## GET PARALLEL CORPUS ##########
 
@@ -234,7 +531,7 @@ def get_nhkeasy():
     row = NHKEASY_DATA.iloc[r]
     return row['date'], row['title'], row['article']
 
-########## funcs for wiki search ############
+########## WIKI SEARCH ############
 
 def remove_tag(text):
     text = re.sub(r'</?.+?>', '', text)
