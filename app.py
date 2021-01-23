@@ -245,19 +245,23 @@ def handle_message(event):
 	text = str(event.message.text).strip()
 	text = re.sub(r'[\s\t]+', ' ', text) # multiple spaces -> one half space
 
-	### CONNECT SQL -> GET MODE & REPLY FROM TEXT
-	con, cursor = connect_sql('nozomibot')
-	mode, reply = get_reply(text, con, cursor)
+	### GET MODE & REPLY FROM TEXT
+	mode, reply = get_reply(text)
 
 	### GET USER INFO & INSERT INTO SQL LOG
 	profile = line_bot_api.get_profile(event.source.user_id)
 	date_now = get_time_now()
+	con, cursor = connect_sql('nozomibot')
 	cursor.execute(f"INSERT INTO log_line (date, mode, text, username, userid) VALUES (%s, %s, %s, %s, %s);", (date_now, mode, text, profile.display_name, profile.user_id))
 	con.commit()
 	con.close()
 	
 	### SEND REPLY
-	line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
+	if reply != None:
+		line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
+	else:
+		reply = 'ขอโทษครับ บอทนี้เป็นบอทอัตโนมัติ ไม่สามารถคุยกันได้'
+		line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
 
 @handler.add(PostbackEvent)
 def handle_postback(event):
@@ -298,11 +302,31 @@ def receive_message():
 				if message.get('postback'):
 					postback_payload = message['postback']['payload']
 					if postback_payload == "GET_STARTED": # get started -> greeting
-						send_message(memberID, 'สวัสดีครับ เป็น nozomibot เวอร์ชันเฟสบุคครับ')
+						send_message(memberID, 'สวัสดีครับ นี่เป็น nozomibot เวอร์ชันเฟสบุคครับ')
+					elif postback_payload == 'menu_quickstart':
+						send_message(memberID, DESCRIPTION)
 
 				##### MESSAGE #####
 				elif message.get('message'):
-					pass
+					received_text = message['message'].get('text')
+					quickreply_payload = message['message'].get('quick_reply',{}).get('payload')
+					attachment = message['message'].get('attachments')
+
+					#### IF USER SENT TEXT MESSAGE ###
+					if received_text:
+						mode, reply = get_reply(text)
+						### SEND REPLY
+						if reply != None:
+							send_message(memberID, reply)
+						else:
+							pass
+						date_now = get_time_now()
+						con, cursor = connect_sql('nozomibot')
+						cursor.execute(f"INSERT INTO log_fb (date, mode, text, userid) VALUES (%s, %s, %s, %s);", (date_now, mode, text, memberID))
+						con.commit()
+						con.close()
+						
+
 
 					### IF USER SENT NON-TEXT , e.g. picture ###
 					if attachment:
