@@ -3,7 +3,7 @@ import pandas as pd
 pd.set_option('mode.chained_assignment', None) # make warning invisible
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta, timezone
-from JpProcessing import yomikata, hira2kata, kata2hira, is_only_kana
+from JpProcessing import *
 
 
 ##### ENVIRONMENT VARIABLES #####
