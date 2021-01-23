@@ -314,7 +314,7 @@ def receive_message():
 
 					#### IF USER SENT TEXT MESSAGE ###
 					if received_text:
-						mode, reply = get_reply(text)
+						mode, reply = get_reply(received_text)
 						### SEND REPLY
 						if reply != None:
 							send_message(memberID, reply)
@@ -322,7 +322,7 @@ def receive_message():
 							pass
 						date_now = get_time_now()
 						con, cursor = connect_sql('nozomibot')
-						cursor.execute(f"INSERT INTO log_fb (date, mode, text, userid) VALUES (%s, %s, %s, %s);", (date_now, mode, text, memberID))
+						cursor.execute(f"INSERT INTO log_fb (date, mode, text, userid) VALUES (%s, %s, %s, %s);", (date_now, mode, received_text, memberID))
 						con.commit()
 						con.close()
 						
