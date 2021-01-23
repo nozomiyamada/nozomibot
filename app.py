@@ -297,8 +297,8 @@ def receive_message():
 				##### ONLY POSTBACK (NO MESSAGE - GET STRATED OR SELECT BY PERSISTENT MENU) #####
 				if message.get('postback'):
 					postback_payload = message['postback']['payload']
-
-
+					if postback_payload == "GET STARTED": # get started -> greeting
+						send_message(memberID, 'สวัสดีครับ เป็น nozomibot เวอร์ชันเฟสบุคครับ')
 
 				##### MESSAGE #####
 				elif message.get('message'):
@@ -310,9 +310,15 @@ def receive_message():
 		return "processed"
 
 
-
-
-
+def send_message(memberID, message_text):
+	r = requests.post("https://graph.facebook.com/v9.0/me/messages",
+		params={"access_token": FB_ACCESS_TOKEN},
+		headers={"Content-Type": "application/json"},
+		data=json.dumps({
+			"recipient": {"id": memberID},
+			"message": {"text": message_text}
+		})
+	)
 
 
 
