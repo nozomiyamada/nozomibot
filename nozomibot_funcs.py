@@ -1,5 +1,6 @@
-import re, requests, json
+import re, requests, json, random
 from JpProcessing import yomikata, hira2kata, kata2hira, is_only_kana
+from bs4 import BeautifulSoup
 import urllib.parse
 import pandas as pd
 pd.set_option('mode.chained_assignment', None)
@@ -96,7 +97,7 @@ def get_kanji(kanji:str, format_for_linebot=True):
         imi = '\n'.join(dic['imi'])
         bushu = dic['bushu']
         kanken = dic['kanken']
-        return f"onyomi: {on}\nkunyomi: {kun}\nความหมาย:\n{imi}\nbushu: {bushu}\nkanken level: {kanken}"
+        return f"on: {on}\nkun: {kun}\nความหมาย:\n{imi}\nbushu: {bushu}\nkanken level: {kanken}"
     else:
         if dic == None:
             return None
@@ -226,6 +227,12 @@ def highlight(text:str, keyword:str):
         return text
     return text.replace(keyword, f'<span class="red">{keyword}</span>')
 
+########## GET RANDOM NHK EASY ARTICLE ##########
+NHKEASY_DATA = data = pd.read_csv('data/nhkeasy.csv')
+def get_nhkeasy():
+    r = random.randint(0, len(NHKEASY_DATA)-1)
+    row = NHKEASY_DATA.iloc[r]
+    return row['date'], row['title'], row['article']
 
 ########## funcs for wiki search ############
 

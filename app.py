@@ -1,7 +1,7 @@
 from flask import Flask, request, abort, render_template, jsonify
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
-from linebot.models import MessageEvent, TextMessage, TextSendMessage
+from linebot.models import MessageEvent, TextMessage, TextSendMessage, PostbackEvent
 from datetime import datetime, timedelta, timezone
 import os, random, re, csv, time
 import mysql.connector
@@ -22,10 +22,10 @@ from dotenv import load_dotenv
 load_dotenv()
 CHANNEL_ACCESS_TOKEN = os.environ["CHANNEL_ACCESS_TOKEN"]
 CHANNEL_SECRET = os.environ["CHANNEL_SECRET"]
+
 SQL_HOSTNAME = os.environ["SQL_HOSTNAME"]
 SQL_USERNAME = os.environ["SQL_USERNAME"]
 SQL_PASSWORD = os.environ["SQL_PASSWORD"]
-
 
 ##### CONNECT SQL FUNCTION #####
 def connect_sql(database:str):
@@ -39,62 +39,6 @@ def connect_sql(database:str):
 
 
 ################################################################################
-###  LINE WEBHOOK
-################################################################################
-
-line_bot_api = LineBotApi(CHANNEL_ACCESS_TOKEN)
-handler = WebhookHandler(CHANNEL_SECRET)
-
-@app.route("/callback", methods=['POST'])
-def callback():
-	# get X-Line-Signature header value
-	signature = request.headers['X-Line-Signature']
-
-	# get request body as text
-	body = request.get_data(as_text=True)
-	#app.logger.info("Request body: " + body)
-
-	# HANDLE WEBHOOK BODY
-	try:
-		handler.handle(body, signature)
-	except InvalidSignatureError:
-		abort(400)
-	return 'OK'
-
-
-@handler.add(MessageEvent, message=TextMessage)
-def handle_message(event):
-	# receive & preprocess message
-	text = str(event.message.text).strip()
-	text = re.sub(r'[\s\t]+', ' ', text) # multiple spaces -> one half space
-
-	# user info & datetime (ICT)
-	profile = line_bot_api.get_profile(event.source.user_id)
-	date_now = get_time_now()
-
-	# connect SQL & insert into LOG
-	con, cursor = connect_sql('jtdic')
-	if str(profile.display_name) != 'Nozomi':
-		cursor.execute(f"INSERT INTO querylog (date, text, username, userid) VALUES (%s, %s, %s, %s);", (date_now, text, profile.display_name, profile.user_id))
-		con.commit()
-
-	# get reply, send reply
-	reply = get_reply(text, con, cursor)
-	line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
-
-	# close SQL
-	cursor.close()
-	con.close()
-
-@app.after_request
-def after_request(response):
-	response.headers.add('Access-Control-Allow-Origin', '*')
-	response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-	response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-	return response
-
-
-################################################################################
 ###  NOZOMIBOT WEB PAGE 
 ################################################################################
 
@@ -104,9 +48,8 @@ def top_page():
 	if request.method == 'GET':
 		return render_template('dict.html', word='')
 	elif request.method == 'POST':
-		userip = request.remote_addr
 		word = request.form['word']
-		log_web('dict', word, userip) # LOG SEARCH HISTORY
+		log_web('dict', word) # LOG SEARCH HISTORY
 		if re.search(r'[ก-๙][ก-๙\.\-]+', word): # Thai word
 			meaning = get_word(word, format_for_linebot=False)# [yomi,word,thai]
 			if meaning == None:
@@ -155,8 +98,7 @@ def web_tokenize():
 		return render_template('tokenize.html')
 	elif request.method == 'POST':
 		text = request.form['text'].strip() # get POST parameters: input sentences
-		userip = request.remote_addr
-		log_web('tokenize', text, userip) # LOG SEARCH HISTORY
+		log_web('tokenize', text) # LOG SEARCH HISTORY
 		roman = romanize(text)
 		tokens = tokenize(text) # ["住ん", "スン", "スム", "住む", "動詞-一般", "五段-マ行", "連用形-撥音便", "1"]
 		tokens_thai = tokenize(text, pos_thai=True) # ['住ん', 'スン', '住む', 'กริยากลุ่ม1']
@@ -181,8 +123,7 @@ def web_example():
 		return render_template('example.html')
 	elif request.method == 'POST':
 		word = request.form['word'].strip() # get POST parameters: input sentences
-		userip = request.remote_addr
-		log_web('example', word, userip) # LOG SEARCH HISTORY
+		log_web('example', word) # LOG SEARCH HISTORY
 		### get tweet
 		#s = time.time()
 		tweet = get_tweet(word, limit=50, max_chr=60, highlighted=True)
@@ -209,8 +150,7 @@ def web_nhkweb():
 	elif request.method == 'POST':
 		genre = request.form['genre'] # get POST parameters: genre
 		keyword = request.form['keyword'].strip() # get POST parameters: input keyword
-		userip = request.remote_addr
-		log_web('nhk', f'{genre}_{keyword}', userip) # LOG SEARCH HISTORY
+		log_web('nhk', f'{genre}_{keyword}') # LOG SEARCH HISTORY
 		articles = get_parallel(genre, keyword) # id, title_easy_ruby, article_easy_ruby, title, article, date, genre 
 		return jsonify({'article':articles, 'nums':len(articles)})
 
@@ -239,16 +179,124 @@ def web_word(word):
 ########################################################################################################################
 
 ################################################################################
+###  LINE WEBHOOK
+################################################################################
+
+line_bot_api = LineBotApi(CHANNEL_ACCESS_TOKEN)
+handler = WebhookHandler(CHANNEL_SECRET)
+
+@app.route("/callback", methods=['POST'])
+def callback():
+	# get X-Line-Signature header value
+	signature = request.headers['X-Line-Signature']
+
+	# get request body as text
+	body = request.get_data(as_text=True)
+	#app.logger.info("Request body: " + body)
+
+	# HANDLE WEBHOOK BODY
+	try:
+		handler.handle(body, signature)
+	except InvalidSignatureError:
+		abort(400)
+	return 'OK'
+
+""" EXAMPLE OF WEBHOOK
+{
+	"destination": "1654034294",
+	"events": [
+		{
+			"replyToken": "0f3779fba3b349968c5d07db31eab56f",
+			"type": "message",
+			"mode": "active",
+			"timestamp": 1462629479859,
+			"source": {
+				"type": "user",
+				"userId": "Ua5a81fcab991a3f24e44ae4bfc89a"
+			},
+			"message": {
+				"id": "325708",
+				"type": "text",
+				"text": "Hello, world"
+			}
+		},
+		{
+			"replyToken": "b60d432864f44d079f6d8efe86cf404b",
+			"type": "postback",
+			"mode": "active",
+			"source": {
+				"userId": "U91eeaf62d...",
+				"type": "user"
+			},
+			"timestamp": 1513669370317,
+			"postback": {
+				"data": "storeId=12345",
+				"params": {
+					"datetime": "2017-12-25T01:00"
+				}
+			}
+		},
+		{
+			"replyToken": "8cf9239d56244f4197887e939187e19e",
+			"type": "follow",
+			"mode": "active",
+			"timestamp": 1462629479859,
+			"source": {
+				"type": "user",
+				"userId": "U4af4980629..."
+			}
+		}
+	]
+}
+"""
+
+@handler.add(MessageEvent, message=TextMessage)
+def handle_message(event):
+	### RECEIVE MESSAGE
+	text = str(event.message.text).strip()
+	text = re.sub(r'[\s\t]+', ' ', text) # multiple spaces -> one half space
+
+	### CONNECT SQL -> GET MODE & REPLY FROM TEXT
+	con, cursor = connect_sql('nozomibot')
+	mode, reply = get_reply(text, con, cursor)
+
+	### GET USER INFO & INSERT INTO SQL LOG
+	profile = line_bot_api.get_profile(event.source.user_id)
+	date_now = get_time_now()
+	cursor.execute(f"INSERT INTO log_line (date, mode, text, username, userid) VALUES (%s, %s, %s, %s, %s);", (date_now, mode, text, profile.display_name, profile.user_id))
+	con.commit()
+	con.close()
+	
+	### SEND REPLY
+	line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
+
+@handler.add(PostbackEvent)
+def handle_postback(event):
+	postback = str(event.postback.data).strip()
+	if postback == 'richmenu_help':
+		line_bot_api.reply_message(event.reply_token, TextSendMessage(text=DESCRIPTION))
+
+
+@app.after_request
+def after_request(response):
+	response.headers.add('Access-Control-Allow-Origin', '*')
+	response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+	response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+	return response
+
+
+
+
+################################################################################
 ###  NOZOMIBOT LINE APP
 ################################################################################
 
-description = """< วิธีใช้ >
+DESCRIPTION = """< วิธีใช้ >
 
-WEB VERSION
+- nozomibot Web Version 
+(มีสองที่ กดเมนูด้านล่างก็เข้าไปเว็บได้)
+https://www.nozomi.ml/
 https://nzmbot.herokuapp.com/
-
-วิธีใช้ละเอียดและตัวอย่างดูเว็บนี้นะครับ
-https://github.com/nozomiyamada/nozomibot/blob/master/README.md
 
 1. พจนานุกรม (JTDic)
 พิมพ์คำศัพท์ภาษาญี่ปุ่นหรือคำศัพท์ไทยเท่านั้น
@@ -261,111 +309,113 @@ https://github.com/nozomiyamada/nozomibot/blob/master/README.md
 ผัน (space) กริยา
 เช่น "ผัน 食べた"
 
-4. วิธีอ่าน (Kana)
-คานะ (space) ประโยค
-เช่น "คานะ 昨日NHKを見ましたか"
+4. วิธีอ่าน (Roman)
+อ่าน (space) ประโยค
+เช่น "อ่าน 昨日NHKを見ましたか"
 
-5. วิธีอ่าน (Roman)
-โรมัน (space) ประโยค
-เช่น "โรมัน 昨日NHKを見ましたか"
-
-6. คันจิดิก
+5. คันจิดิก
 คันจิ (space) คันจิตัวเดียว
 เช่น "คันจิ 望"
 
-7. accent
+6. accent
 accent (space) คำ
 เช่น "accent 山田"
 
-8. random NHK News easy
+7. สุ่มเลือกบทความ NHK News Easy
 พิมพ์ NHK
 
-9. ตัวอย่างประโยคจาก NHK News
+8. ตัวอย่างประโยคจาก NHK News
 ตัวอย่าง (space) คำ
 เช่น "ตัวอย่าง 発表"
 
-10. ตัวอย่างประโยคจาก Twitter
+9. ตัวอย่างประโยคจาก Twitter
 tweet (space) คำ
 เช่น "tweet コロナ"
 
-11. wikipedia
+10. wikipedia
 วิกิ (space) คำ
 เช่น "วิกิ バンコク"
 
-หากเจอข้อผิดพลาดหรือ bug ต่างๆ กรุณารบกวนแจ้งให้ทราบโดยพิมพ์ "feedback เมสเสจ" หรือติดต่อทาง Facebook (ชื่อ: Nozomi Ymd) ด้วยนะครับ ขอบคุณครับ"""
+หากเจอข้อผิดพลาดหรือ bug ต่างๆ กรุณารบกวนแจ้งให้ทราบโดยพิมพ์ "feedback เมสเสจ" หรือติดต่อทาง Facebook Page ด้วยนะครับ ขอบคุณครับ
+"""
 
 
-def get_reply(text:str, cn, cursor):
+def get_reply(text:str, con, cursor):
 	# mode select
-	# 0:help 1:sawasdee 2:jojo 3:feedback 4:P'No 5:incorrect 6.kanji
-	if re.match(r'(help|使い方|วิธีใช้|ยังไง)$', text, flags=re.I):
-		MODE = 0
-	elif re.match(r'(สวัสดี|สบายดีไหม)$', text):
-		MODE = 1
-	elif re.match(r'(jojo|giogio|ジョジョ|โจโจ้)$', text, flags=re.I):
-		MODE = 2
-	elif re.match(r'feedback', text, flags=re.I):
-		MODE = 3
-	elif re.search(r'พี่โน', text):
-		MODE = 4
-	elif len(text.split(' ')) > 1 and not \
-		re.match(r'(漢字|คันจิ|kanji|分けて|切って|token|ตัด|活用|conj|ผัน(รูป)?|accent|アクセント|roman|ローマ字|โรมัน|อ่าน(ว่า)?|読み(方)?|かな|カナ|kana|ค[ะา]นะ|วิกิ|wiki|ウィキ|NHK|例文|corpus|ตัวอย่าง|twitter|ツイート|ツイッター|tweet)', text, flags=re.I):
-		MODE = 5
-	elif re.match(r'(漢字|คันจิ|kanji) .+$', text, flags=re.I):
-		MODE = 6
+	if re.match(r'(help|使い方|วิธีใช้|ใช้ยังไง|ヘルプ)\s*$', text, flags=re.I):
+		MODE = '0.HELP'
 	elif re.match(r'(分けて|切って|token(ize)?|ตัด) ', text, flags=re.I):
-		MODE = 7
+		MODE = '2.TOKENIZE'
 	elif re.match(r'(活用|conj(ugate)?|ผัน(รูป)?) ', text, flags=re.I):
-		MODE = 8
+		MODE = '3.CONJ'
+	elif re.match(r'(อ่าน(ว่า)?|読み(方)?|โรมัน|ローマ字|roman) ', text, flags=re.I):
+		MODE = '4.ROMAN'
+	elif re.match(r'(漢字|คันจิ|kanji) .+$', text, flags=re.I):
+		MODE = '5.KANJI'
 	elif re.match(r'(accent|アクセント) ', text, flags=re.I):
-		MODE = 9
-	elif re.match(r'(roman|โรมัน|ローマ字) ', text, flags=re.I):
-		MODE = 10
-	elif re.match(r'(อ่าน(ว่า)?|読み(方)?|かな|カナ|kana|ค[ะา]นะ) ', text, flags=re.I):
-		MODE = 11
-	elif re.match(r'(วิกิ|wiki|ウィキ) ', text, flags=re.I):
-		MODE = 12
-	elif re.match(r'NHK', text, flags=re.I):
-		MODE = 13
+		MODE = '6.ACCENT'
+	elif re.match(r'NHK$', text, flags=re.I):
+		MODE = '7.NHK-EASY'
 	elif re.match(r'(corpus|例文|ตัวอย่าง) ',text, flags=re.I):
-		MODE = 14
-	elif re.match(r'(twitter|tweet|ツイッター|ツイート) ',text, flags=re.I):
-		MODE = 15
+		MODE = '8.EXAMPLE-NHK'
+	elif re.match(r'(twitter|tweet|ツイッター|ツイート|ทวีต) ',text, flags=re.I):
+		MODE = '9.EXAMPLE-TWITTER'
+	elif re.match(r'(วิกิ|wiki|ウィキ) ', text, flags=re.I):
+		MODE = '10.WIKI'
+	elif re.match(r'(สวัสดี|สบายดีไหม|สบายดีมั้ย|หวัดดี)\s*$', text):
+		MODE = 'SAWASDEE'
+	elif re.search(r'(((รัก|ชอบ)(คุณ|เ[ธท]อ))|(love you))\b', text, flags=re.I):
+		MODE = 'LOVEYOU'
+	elif re.match(r'(jojo|giogio|ジョジョ|โจโจ้)\s*$', text, flags=re.I):
+		MODE = 'JOJO'
+	elif re.match(r'feedback', text, flags=re.I):
+		MODE = 'FEEDBACK'
+	elif re.search(r'พี่โน|โนโซมิ', text):
+		MODE = 'P-NO'
+	elif len(text.split(' ')) > 1 and not \
+		re.match(r'(help|使い方|วิธีใช้|ใช้ยังไง|ヘルプ|分けて|切って|token(ize)?|ตัด|活用|conj(ugate)?|ผัน(รูป)?|อ่าน(ว่า)?|読み(方)?|โรมัน|ローマ字|roman|漢字|คันจิ|kanji|accent|アクセント|NHK|corpus|例文|ตัวอย่าง|twitter|tweet|ツイッター|ツイート|ทวีต|วิกิ|wiki|ウィキ|สวัสดี|สบายดีไหม|สบายดีมั้ย|หวัดดี|jojo|giogio|ジョジョ|โจโจ้|feedback|พี่โน)', text, flags=re.I):
+		MODE = 'EROOR'
 	else:
-		MODE = 100
+		MODE = '1.DICT'
 
-	
-	##### execute each mode #####
+	##### EXECUTE EACH MODE #####
+	if MODE == '0.HELP':
+		reply = DESCRIPTION
 
-	# 0. help
-	if MODE == 0:
-		reply = description
-	
-	# 1. sawasdee
-	elif MODE == 1:
-		reply = random.choice(['สวัสดีครับ','หัวดดี','เป็นไงบ้าง','ไปไหนมา','อ้วนขึ้นป่าว','ทำไรอยู่','สบายดีไหม','อยากกินหมูกระทะ','คิดถึงจังเลย','ฮัลโหล','หิวแล้วอ่ะ','เย่แล้ววว','ว้าวซ่า','กินข้าวรึยัง'])
-	
-	# 2. JOJO
-	elif MODE == 2:
-		with open('data/jojo.csv', 'r', encoding='utf8') as f:
-			data = list(csv.reader(f))
-			line = random.choice(data)
-		reply = f'{line[0]}\n\n - {line[1]}, Part {line[2]}'
-	
-	# 3. feedback
-	elif MODE == 3:
-		reply = 'ขอบคุณมากที่ส่ง feedback และช่วยพัฒนาระบบครับ❤️'
-	
-	# 4. P'No
-	elif MODE == 4:
-		reply = random.choice(['พี่โนเป็นคนสุดหล่อ','พี่โนเป็นคนใจดีสุดๆ','พี่โนเป็นคนสุดยอด','พี่โนชอบสเวนเซ่น','พี่โนชอบก๋วยเตี๋ยวเรือ','พี่โนเป็นทาสแมว','พี่โนกักตัวอยู่่','เลี้ยงข้าวพี่โนหน่อย','พี่โนชอบโจโจ้'])
-	
-	# 5. incorrect use
-	elif MODE == 5:
-		reply = "ใช้ผิดครับ พิมพ์ help จะแสดงวิธีใช้"
-	
-	# 6. kanji dic
-	elif MODE == 6:
+	elif MODE == '1.DICT':
+		try:
+			reply = get_word(text)
+			if reply == None:
+				reply = 'ขอโทษที่หาไม่เจอในดิกครับ\n(พิมพ์ help จะแสดงวิธีใช้)'
+		except:
+			reply = 'server error รอสักครู่นะครับ'
+
+	elif MODE == '2.TOKENIZE':
+		text = text.split(' ', 1)[1]
+		tokens = tokenize(text, pos_thai=True) # token = [surface, phone, lemma, pos]
+		if len(tokens) < 40:
+			reply = '\n'.join([f'{toNchr(token[0])} {toNchr(token[1])} {toNchr(token[2])} {token[3]}' for token in tokens]) # SR, phone, lemma, pos
+		else:
+			reply = 'ประโยคยาวเกินไปครับ'
+
+	elif MODE == '3.CONJ':
+		text = text.split(' ', 1)[1]
+		r = conjugate(text)
+		if r == None:
+			reply = 'ผันไม่ได้ครับ ต้องเป็นกริยาหรือ i-adj เท่านั้น'
+		elif len(r) == 10: # verb with
+			reply = f'辞書形:　　 {r[0]}\nない形:　　 {r[1]}\nなかった形: {r[2]}\nます形:　　 {r[3]}\nて形:　　　 {r[4]}\nた形:　　　 {r[5]}\nば形:　　　 {r[6]}\n命令形:　　 {r[7]}\n意向形:　　 {r[8]}\n可能形:　　 {r[9]}'
+		elif len(r) == 8:  # adj
+			reply = f'辞書形:　　 {r[0]}\nない形:　　 {r[1]}\nなかった形: {r[2]}\nです形:　　 {r[3]}\nて形:　　　 {r[4]}\nた形:　　　 {r[5]}\nば形:　　　 {r[6]}\n副詞化:　　 {r[7]}' 
+
+	elif MODE == '4.ROMAN':
+		text = text.split(' ', 1)[1]
+		try:
+			reply = romanize(text)
+		except:
+			reply = 'ขอโทษที่เปลี่ยนไม่ได้ครับ'
+
+	elif MODE == '5.KANJI':
 		kanji = text.split(' ', 1)[1]
 		if len(kanji) > 1:
 			reply = "พิมพ์คันจิตัวเดียวนะครับ"
@@ -374,118 +424,87 @@ def get_reply(text:str, cn, cursor):
 		else:
 			reply = get_kanji(kanji)
 
-	# 7. tokenize
-	elif MODE == 7:
-		text = text.split(' ', 1)[1]
-		tokens = tokenize(text, pos_thai=True) # token = [surface, phone, lemma, pos]
-		if len(tokens) < 40:
-			reply = '\n'.join([f'{toNchr(token[0])} {toNchr(token[1])} {toNchr(token[2])} {token[3]}' for token in tokens]) # SR, phone, lemma, pos
-		else:
-			reply = 'ประโยคยาวเกินไปครับ'
-
-	
-	# 8. conjugate 
-	elif MODE == 8:
-		text = text.split(' ', 1)[1]
-		r = conjugate(text)
-		if r == None:
-			reply = 'ผันไม่ได้ครับ ต้องเป็นกริยาหรือ i-adj เท่านั้น'
-		elif len(r) == 9: # verb w/o potential form
-			reply = f'辞書形:　　 {r[0]}\nない形:　　 {r[1]}\nなかった形: {r[2]}\nます形:　　 {r[3]}\nて形:　　　 {r[4]}\nた形:　　　 {r[5]}\nば形:　　　 {r[6]}\n命令形:　　 {r[7]}\n意向形:　　 {r[8]}'
-		elif len(r) == 10: # verb with potential form
-			reply = f'辞書形:　　 {r[0]}\nない形:　　 {r[1]}\nなかった形: {r[2]}\nます形:　　 {r[3]}\nて形:　　　 {r[4]}\nた形:　　　 {r[5]}\nば形:　　　 {r[6]}\n命令形:　　 {r[7]}\n意向形:　　 {r[8]}\n可能形:　　 {r[9]}'
-		elif len(r) == 8:  # adj
-			reply = f'辞書形:　　 {r[0]}\nない形:　　 {r[1]}\nなかった形: {r[2]}\nです形:　　 {r[3]}\nて形:　　　 {r[4]}\nた形:　　　 {r[5]}\nば形:　　　 {r[6]}\n副詞化:　　 {r[7]}' 
-			
-
-	# 9. accent
-	elif MODE == 9:
+	elif MODE == '6.ACCENT':
 		word = text.split(' ', 1)[1]
 		reply = get_accent(word)
 		if reply == None:
-			reply = 'หาไม่เจอในดิกครับ\n(พิมพ์ help จะแสดงวิธีใช้)'
+			reply = 'ขอโทษที่หาไม่เจอ accent ในดิกครับ'
 
-	# 10. romanize
-	elif MODE == 10:
-		text = text.split(' ', 1)[1]
-		try:
-			reply = romanize(text)
-		except:
-			reply = f'เปลี่ยน {text} ไม่ได้ครับ'
+	elif MODE == '7.NHK-EASY':
+		date, title, article = get_nhkeasy()
+		reply = f"{date}\n{title}\n\n{article}"
 
-	# 11. kanazation
-	elif MODE == 11:
-		text = text.split(' ', 1)[1]
-		try:
-			reply = yomikata(text)
-		except:
-			reply = f'เปลี่ยน {text} ไม่ได้ครับ'
-
-	# 12. WIKI
-	elif MODE == 12:
-		word = text.split(' ', 1)[1]
-		reply = get_wiki(word)
-
-	# 13. NHK easy
-	elif MODE == 13:
-		data = pd.read_csv('data/nhkeasy.csv')
-		r = random.randint(0, len(data)-1)
-		row = data.loc[r]
-		reply = f"{row['date']}\n{row['title']}\n\n{row['article']}"
-
-	# 14. NHK corpus
-	elif MODE == 14:
-		# search
+	elif MODE == '8.EXAMPLE-NHK':
 		word = text.split(' ')[1]
-		if len(text.split(' ')) == 3:
-			limit = int(text.split(' ')[2])
+		if len(text.split(' ')) >= 3: # 3rd argument = num of result e.g. NHK 発表 10
+			try:
+				limit = int(text.split(' ')[2])
+			except:
+				limit = 5
 			if limit > 100:
 				limit = 100
 		else:
 			limit = 5
-		result = get_nhk(word, limit, cursor)
-		if result == []:
-			reply = 'หาไม่เจอในคลังข้อมูลครับ\n(พิมพ์ help จะแสดงวิธีใช้)'
+		result = get_nhk(word, limit, highlighted=False)
+		if result == None:
+			reply = 'ขอโทษที่หาไม่เจอในคลังข้อมูลครับ'
 		else:
 			reply = ''
 			for sentence in result:
 				reply += '・' + sentence.strip() + '\n\n'
 			reply = reply.strip()
 
-	# 15. Twitter
-	elif MODE == 15:
-		# "tweet query 10"
+	elif MODE == '9.EXAMPLE-TWITTER':
 		query = text.split(' ')[1]
-		if len(text.split(' ')) == 3:
-			limit = int(text.split(' ')[2])
+		if len(text.split(' ')) >= 3: # 3rd argument = num of result e.g. tweet 発表 10
+			try:
+				limit = int(text.split(' ')[2])
+			except:
+				limit = 5
 			if limit > 100:
 				limit = 100
 		else:
 			limit = 5
-		result = get_twitter(query, limit, cursor)
-		if result == []:
-			reply = 'หาไม่เจอในคลังข้อมูลครับ\n(พิมพ์ help จะแสดงวิธีใช้)'
+		result = get_tweet(query, limit, highlighted=False)
+		if result == None:
+			reply = 'ขอโทษที่หาไม่เจอในคลังข้อมูลครับ'
 		else:
 			reply = ''
 			for tweet in result:
 				reply += '・' + tweet.strip() + '\n\n'
 			reply = reply.strip()
 
-	# DICTIONARY MODE
-	else:
-		try:
-			reply = get_word(text)
-			if reply == None:
-				reply = 'หาไม่เจอในดิกครับ\n(พิมพ์ help จะแสดงวิธีใช้)'
-		except:
-			reply = 'server error รอสักครู่นะครับ'
+	elif MODE == '10.WIKI':
+		word = text.split(' ', 1)[1]
+		reply = get_wiki(word)
 
-	return reply
+	elif MODE == 'SAWASDEE':
+		reply = random.choice(['สวัสดีครับ','หัวดดี','เป็นไงบ้าง','ไปไหนมา','อ้วนขึ้นป่าว','ทำไรอยู่','สบายดีไหม','อยากกินหมูกระทะ','คิดถึงจังเลย','ฮัลโหล','หิวแล้วอ่ะ','เย่แล้ววว','ว้าวซ่า','กินข้าวรึยัง','กักตัวอยู่ไหม'])
+	
+	elif MODE == 'LOVEYOU':
+		reply = random.choice(['ผมก็รักเธอเหมือนกัน','เขินจัง','อยู่ดีๆ อะไรนะ','ขอคิดก่อน','เป็นเพื่อนกันดีกว่า','ผมมีแฟนแล้ว ขอโทษ','ลองคบกันไหม','ยินดีครับ'])
 
-def get_tweet(query, limit=30, max_chr=30, highlighted=True):
+	elif MODE == 'JOJO':
+		with open('data/jojo.csv', 'r', encoding='utf8') as f:
+			data = list(csv.reader(f))
+			line = random.choice(data)
+		reply = f'{line[0]}\n\n - {line[1]}, Part {line[2]}'
+
+	elif MODE == 'FEEDBACK':
+		reply = 'ขอบคุณมากที่ส่ง feedback และช่วยพัฒนาระบบครับ❤️'
+
+	elif MODE == 'P-NO':
+		reply = random.choice(['พี่โนเป็นคนสุดหล่อ','พี่โนเป็นคนใจดีสุดๆ','พี่โนเป็นคนสุดยอด','พี่โนชอบสเวนเซ่น','พี่โนชอบกินก๋วยเตี๋ยวเรือ','พี่โนเป็นทาสแมว','พี่โนกักตัวอยู่่','เลี้ยงข้าวพี่โนหน่อย','พี่โนชอบโจโจ้','ราเม็งญี่ปุ่นต้องเค็มๆ','ช่วงนี้อ้วนขึ้น','นกไปแล้ว พี่โนกำลังเศร้าอยู่'])
+	
+	elif MODE == 'EROOR':
+		reply = "น่าจะใช้ผิดครับ พิมพ์ help จะแสดงวิธีใช้"
+
+	return MODE, reply
+
+def get_tweet(query, limit=100, max_chr=35, highlighted=True):
 	con, cursor = connect_sql('nozomibot')
 	### get tweet at random 
-	cursor.execute(f"SELECT tweet, username FROM tweetjp WHERE tweet LIKE '%{query}%' ORDER BY RAND() LIMIT 100;")
+	cursor.execute(f"SELECT tweet, username FROM tweetjp WHERE tweet LIKE '%{query}%' LIMIT 300;")
 	result = list(cursor) # [[tweet, username],,]
 	if len(result) == 0:
 		return None
@@ -503,16 +522,18 @@ def get_tweet(query, limit=30, max_chr=30, highlighted=True):
 			candidates |= set(re.findall(sentence_pattern, tweet)) # one tweet may contain multiple matched sentences
 	candidates = set([x.strip() for x in candidates if len(x.strip()) >= len(query)+2]) # exclude too short sentences
 	if len(candidates) > limit:
-		candidates = list(candidates)[:limit]
+		candidates = random.sample(list(candidates), limit)
 	if highlighted:
 		candidates = [highlight(cand, query) for cand in candidates]
 	con.close()
 	return candidates
 
-def get_nhk(query, limit=30, highlighted=True):
+
+##### EXAMPLE OF NHK NEWS WEB #####
+def get_nhk(query, limit=100, highlighted=True):
 	con, cursor = connect_sql('nozomibot')
 	### get tweet at random 
-	cursor.execute(f"SELECT id, article FROM nhkweb WHERE article LIKE '%{query}%' ORDER BY RAND() LIMIT 200;")
+	cursor.execute(f"SELECT id, article FROM nhkweb WHERE article LIKE '%{query}%' LIMIT 300;")
 	result = list(cursor) # [[id, article],,]
 	if len(result) == 0:
 		return None
@@ -522,7 +543,7 @@ def get_nhk(query, limit=30, highlighted=True):
 		candidates |= set(re.findall(sentence_pattern, article))
 	candidates = set([x.strip() for x in candidates if len(x.strip()) >= len(query)+2 and len(x)>10]) # exclude too short sentences
 	if len(candidates) > limit:
-		candidates = list(candidates)[:limit]
+		candidates = random.sample(list(candidates), limit)
 	if highlighted:
 		candidates = [highlight(cand, query) for cand in candidates]
 	con.close()
@@ -536,21 +557,11 @@ def get_time_now():
 		return str(datetime.now()).split('.')[0]
 
 ##### SQL LOG FUNCTION #####
-def log_web(mode, text, userip):
+def log_web(mode, text):
 	try:
 		con, cursor = connect_sql('nozomibot')
 		date_now = get_time_now()
-		cursor.execute(f"INSERT INTO log_web (date, mode, text, userip) VALUES (%s, %s, %s, %s);", (date_now, mode, text, userip))
-		con.commit()
-		con.close()
-	except:
-		pass
-
-def log_line(mode, text, username, userid):
-	try:
-		con, cursor = connect_sql('nozomibot')
-		date_now = get_time_now()
-		cursor.execute(f"INSERT INTO log_line (date, mode, text, username, userid) VALUES (%s, %s, %s, %s, %s);", (date_now, mode, text, username, userid))
+		cursor.execute(f"INSERT INTO log_web (date, mode, text) VALUES (%s, %s, %s);", (date_now, mode, text))
 		con.commit()
 		con.close()
 	except:
