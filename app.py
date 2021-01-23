@@ -297,7 +297,7 @@ def receive_message():
 				##### ONLY POSTBACK (NO MESSAGE - GET STRATED OR SELECT BY PERSISTENT MENU) #####
 				if message.get('postback'):
 					postback_payload = message['postback']['payload']
-					if postback_payload == "GET STARTED": # get started -> greeting
+					if postback_payload == "GET_STARTED": # get started -> greeting
 						send_message(memberID, 'สวัสดีครับ เป็น nozomibot เวอร์ชันเฟสบุคครับ')
 
 				##### MESSAGE #####
