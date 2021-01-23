@@ -128,7 +128,7 @@ def get_reply(text:str):
 		MODE = '9.EXAMPLE-TWITTER'
 	elif re.match(r'(วิกิ|wiki|ウィキ) ', text, flags=re.I):
 		MODE = '10.WIKI'
-	elif re.match(r'(สวัสดี|สบายดีไหม|สบายดีมั้ย|หวัดดี)\s*$', text):
+	elif re.match(r'(สวัสดี|สบายดีไหม|สบายดีมั้ย|หวัดดี)(ครับ|ค่ะ|คะ)?\s*$', text):
 		MODE = 'SAWASDEE'
 	elif re.search(r'(((รัก|ชอบ)(คุณ|เ[ธท]อ))|(love you))\b', text, flags=re.I):
 		MODE = 'LOVEYOU'
@@ -154,7 +154,7 @@ def get_reply(text:str):
 		try:
 			reply = get_word(text)
 			if reply == None:
-				reply = 'feedback ขออภัยไม่พบคำนี้ในพจนานุกรมครับ\n(พิมพ์ "help" จะแสดงวิธีใช้)'
+				reply = 'ขออภัยไม่พบคำนี้ในพจนานุกรมครับ\n(พิมพ์ "help" จะแสดงวิธีใช้)'
 		except:
 			reply = 'server error รอสักครู่นะครับ'
 

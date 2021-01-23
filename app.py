@@ -301,7 +301,7 @@ def receive_message():
 				if message.get('postback'):
 					postback_payload = message['postback']['payload']
 					if postback_payload == "GET_STARTED": # get started -> greeting
-						send_message(memberID, 'สวัสดีครับ นี่เป็น nozomibot เวอร์ชันเฟสบุคครับ')
+						send_message(memberID, 'สวัสดีครับ นี่เป็น nozomibot เวอร์ชันเฟสบุคครับ\nกดปุ่ม ≡ ตรงด้านข้างแล้วเมนุจะขึ้นครับ')
 					elif postback_payload == 'menu_quickstart':
 						send_message(memberID, DESCRIPTION)
 
