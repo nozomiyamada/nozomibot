@@ -147,12 +147,24 @@ def web_request():
 	except Exception as e:
 		print(e)
 	return jsonify({'result':'success'})
-	
+
 
 ##### SINGLE WORD SEARCH : SAME AS TOP PAGE #####
 @app.route('/<word>', methods=['GET'])
 def web_word(word):
 	return render_template('dict.html', word=word)
+
+
+##### SQL LOG FUNCTION #####
+def log_web(mode, text):
+	try:
+		con, cursor = connect_sql('nozomibot')
+		date_now = get_time_now()
+		cursor.execute(f"INSERT INTO log_web (date, mode, text) VALUES (%s, %s, %s);", (date_now, mode, text))
+		con.commit()
+		con.close()
+	except:
+		pass
 
 
 ################################################################################
@@ -266,22 +278,42 @@ def after_request(response):
 ###  FB MESSENGER WEBHOOK
 ################################################################################
 
+@app.route('/facebook/callback', methods=['GET', 'POST'])
+def receive_message():
+	if request.method == 'GET':
+		if request.args.get("hub.verify_token") == FB_VERIFY_TOKEN:
+			return request.args.get("hub.challenge")
+		else:
+			return 'Invalid'
+	elif request.method == 'POST':
+		data = request.get_json()
+		for event in data['entry']: # 'entry' is a list of events
+			messaging = event['messaging']
+			for message in messaging: # event['messaging'] is a list of dict {'sender':xxx,'recipient':yyy,}
+				memberID = message['sender']['id'] # Facebook Messenger ID to send message back
+
+				####################  DON'T HAVE TO EDIT ABOVE  #################### 
+
+				##### ONLY POSTBACK (NO MESSAGE - GET STRATED OR SELECT BY PERSISTENT MENU) #####
+				if message.get('postback'):
+					postback_payload = message['postback']['payload']
+
+
+
+				##### MESSAGE #####
+				elif message.get('message'):
+					pass
+
+					### IF USER SENT NON-TEXT , e.g. picture ###
+					if attachment:
+						pass
+		return "processed"
 
 
 
 
 
 
-##### SQL LOG FUNCTION #####
-def log_web(mode, text):
-	try:
-		con, cursor = connect_sql('nozomibot')
-		date_now = get_time_now()
-		cursor.execute(f"INSERT INTO log_web (date, mode, text) VALUES (%s, %s, %s);", (date_now, mode, text))
-		con.commit()
-		con.close()
-	except:
-		pass
 
 
 ###########################################################

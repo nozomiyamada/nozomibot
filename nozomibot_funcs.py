@@ -9,8 +9,14 @@ from JpProcessing import yomikata, hira2kata, kata2hira, is_only_kana
 ##### ENVIRONMENT VARIABLES #####
 from dotenv import load_dotenv
 load_dotenv()
+
+### LINE BOT
 CHANNEL_ACCESS_TOKEN = os.environ["CHANNEL_ACCESS_TOKEN"]
 CHANNEL_SECRET = os.environ["CHANNEL_SECRET"]
+
+### FB BOT
+FB_ACCESS_TOKEN = os.environ["FB_ACCESS_TOKEN"]
+FB_VERIFY_TOKEN = os.environ["FB_VERIFY_TOKEN"]
 
 SQL_HOSTNAME = os.environ["SQL_HOSTNAME"]
 SQL_USERNAME = os.environ["SQL_USERNAME"]
