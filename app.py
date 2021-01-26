@@ -1,7 +1,7 @@
 from flask import Flask, request, abort, render_template, jsonify
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
-from linebot.models import MessageEvent, TextMessage, TextSendMessage, PostbackEvent
+from linebot.models import MessageEvent, PostbackEvent, TextMessage, TextSendMessage, QuickReply, QuickReplyButton, MessageAction, PostbackAction, URIAction
 import os, random, re, time
 from JpProcessing import *
 from nozomibot_funcs import *
@@ -224,16 +224,6 @@ def callback():
 					"datetime": "2017-12-25T01:00"
 				}
 			}
-		},
-		{
-			"replyToken": "8cf9239d56244f4197887e939187e19e",
-			"type": "follow",
-			"mode": "active",
-			"timestamp": 1462629479859,
-			"source": {
-				"type": "user",
-				"userId": "U4af4980629..."
-			}
 		}
 	]
 }
@@ -249,15 +239,23 @@ def handle_message(event):
 
 	### GET USER INFO & INSERT INTO SQL LOG
 	profile = line_bot_api.get_profile(event.source.user_id)
-	date_now = get_time_now()
-	con, cursor = connect_sql('nozomibot')
-	cursor.execute(f"INSERT INTO log_line (date, mode, text, username, userid) VALUES (%s, %s, %s, %s, %s);", (date_now, mode, text, profile.display_name, profile.user_id))
-	con.commit()
-	con.close()
+	if profile.display_name != '':
+		date_now = get_time_now()
+		con, cursor = connect_sql('nozomibot')
+		cursor.execute(f"INSERT INTO log_line (date, mode, text, username, userid) VALUES (%s, %s, %s, %s, %s);", (date_now, mode, text, profile.display_name, profile.user_id))
+		con.commit()
+		con.close()
 	
 	### SEND REPLY
 	if reply != None:
 		line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
+	elif mode == 'JOSHI_START':
+		items = [
+			QuickReplyButton(action=PostbackAction(label="Kakujoshi 5 ข้อ", data="JOSHI_kaku5_0_0_")),
+			QuickReplyButton(action=PostbackAction(label="Kakujoshi 10 ข้อ", data="JOSHI_kaku10_0_0_"))
+		]
+		message = TextSendMessage(text="เลือกจำนวนข้อ", quick_reply=QuickReply(items=items))
+		line_bot_api.reply_message(event.reply_token, message)
 	else:
 		reply = 'ขอโทษครับ บอทนี้เป็นบอทอัตโนมัติ ไม่สามารถคุยกันได้'
 		line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
@@ -267,6 +265,14 @@ def handle_postback(event):
 	postback = str(event.postback.data).strip()
 	if postback == 'richmenu_help':
 		line_bot_api.reply_message(event.reply_token, TextSendMessage(text=DESCRIPTION))
+	elif postback.startswith('JOSHI_'):
+		text, labels, datas = get_postback(postback)
+		if labels != None:
+			items = [QuickReplyButton(action=PostbackAction(label=label, display_text=label, data=data)) for label, data in zip(labels, datas)]
+			message = TextSendMessage(text=text, quick_reply=QuickReply(items=items))
+			line_bot_api.reply_message(event.reply_token, message)
+		else:
+			line_bot_api.reply_message(event.reply_token, TextSendMessage(text=text)) # show result and end
 
 
 @app.after_request

@@ -142,6 +142,8 @@ def get_reply(text:str):
 	elif len(text.split(' ')) > 1 and not \
 		re.match(r'(help|使い方|วิธีใช้|ใช้ยังไง|ヘルプ|分けて|切って|token(ize)?|ตัด|活用|conj(ugate)?|ผัน(รูป)?|อ่าน(ว่า)?|読み(方)?|โรมัน|ローマ字|roman|漢字|คันจิ|kanji|accent|アクセント|NHK|corpus|例文|ตัวอย่าง|twitter|tweet|ツイッター|ツイート|ทวีต|วิกิ|wiki|ウィキ|สวัสดี|สบายดีไหม|สบายดีมั้ย|หวัดดี|jojo|giogio|ジョジョ|โจโจ้|feedback|พี่โน)', text, flags=re.I):
 		MODE = 'EROOR'
+	elif re.match(r'(助詞|じょし)(クイズ|テスト|くいず|てすと)', text):
+		MODE = 'JOSHI_START'
 	elif len(text) < 40:
 		MODE = '1.DICT'
 	else:
@@ -165,7 +167,7 @@ def get_reply(text:str):
 		if len(tokens) < 40:
 			reply = '\n'.join([f'{toNchr(token[0])} {toNchr(token[1])} {toNchr(token[2])} {token[3]}' for token in tokens]) # SR, phone, lemma, pos
 		else:
-			reply = 'ประโยคยาวเกินไปครับ'
+			reply = 'ประโยคยาวเกินไป ใช้เว็บเวอร์ชันแทนได้ไหมครับ\n\nhttps://www.nozomi.ml/tokenize'
 
 	elif MODE == '3.CONJ':
 		text = text.split(' ', 1)[1]
@@ -268,10 +270,41 @@ def get_reply(text:str):
 	elif MODE == 'EROOR':
 		reply = "น่าจะใช้ผิดครับ พิมพ์ว่า help หรือกดเมนูด้านล่างจะแสดงวิธีใช้"
 
+	elif MODE == 'JOSHI_START':
+		reply = None
+
 	elif MODE == 'LONG MESSAGE':
-		reply == None
+		reply = None
 
 	return MODE, reply
+
+
+def get_postback(postback:str): # return (text, labels:list, datas:list)
+	if postback.startswith('JOSHI_kaku'): # JOSHI_kaku10_3_2_を (question number, cum score, previous answer)
+		q_num = int(postback.split('_')[2])
+		score_now = int(postback.split('_')[3])
+		answer_before = postback.split('_')[4]
+		text, answer, others = joshi_quiz() # '秋田県__人が総理大臣になるのは初めてです。', 'の', ['を', 'より', 'で', 'と']
+		if answer_before == '': # Q1
+			text = 'Q1: ' + text
+		else:
+			text = f'เฉลย {answer_before}\n\nQ{q_num+1}: ' + text
+		insert_i = random.randint(0,4)
+		others.insert(insert_i, answer) # ['を', 'より', 'で', 'と'] -> ['を', 'より', 'で', 'の', 'と']
+		if postback.startswith('JOSHI_kaku10'):
+			datas = [f'JOSHI_kaku10_{q_num+1}_{score_now}_{answer}'] * 5
+			datas[insert_i] = f'JOSHI_kaku10_{q_num+1}_{score_now+1}_{answer}'
+			if q_num < 10:
+				return text, others, datas
+			else:
+				return f'คะแนนของคุณ: {score_now}/10', None, None
+		elif postback.startswith('JOSHI_kaku5'):
+			datas = [f'JOSHI_kaku5_{q_num+1}_{score_now}_{answer}'] * 5
+			datas[insert_i] = f'JOSHI_kaku5_{q_num+1}_{score_now+1}_{answer}'
+			if q_num < 5:
+				return text, others, datas
+			else:
+				return f'คะแนนของคุณ: {score_now}/5', None, None
 
 
 ################################################################################
@@ -539,14 +572,14 @@ def highlight(text:str, keyword:str):
 		return text
 	return text.replace(keyword, f'<span class="red">{keyword}</span>')
 
-########## GET RANDOM NHK EASY ARTICLE ##########
+##########  GET RANDOM NHK EASY ARTICLE  ##########
 NHKEASY_DATA = data = pd.read_csv('data/nhkeasy.csv')
 def get_nhkeasy():
 	r = random.randint(0, len(NHKEASY_DATA)-1)
 	row = NHKEASY_DATA.iloc[r]
 	return row['date'], row['title'], row['article']
 
-########## WIKI SEARCH ############
+##########  WIKI SEARCH  ############
 
 def remove_tag(text):
 	text = re.sub(r'</?.+?>', '', text)
@@ -579,3 +612,21 @@ def get_wiki(word):
 			content = re.sub(r'[,，]\s*聴く\[ヘルプ/ファイル\]', '', content)
 			content = re.sub(r'\(音声ファイル\)', '', content)
 			return content.strip() + '\n\n' + newurl
+
+
+##########  JOSHI QUIZ  ##########
+
+SENTS_EASY = open('data/short_sentence_easy.txt').read().splitlines()
+KAKUJOSHI = ['を','に','が','と','の','より','へ','から','で']
+def joshi_quiz(joshi_type="格助詞"):
+	sent = random.choice(SENTS_EASY)
+	tokens = tokenize(sent)
+	joshi_index = [i for i, token in enumerate(tokens) if joshi_type in token[4]] # index list of all joshi
+	if joshi_index == []:
+		return joshi_quiz(joshi_type) # if not find, recurrsive
+	selected_index = random.choice(joshi_index) # select one joshi at random
+	answer = tokens[selected_index][0] # answer joshi
+	tokens[selected_index][0] = '___' # mask answer
+	others = [x for x in KAKUJOSHI if x != answer]
+	random.shuffle(others)
+	return ''.join([token[0] for token in tokens]), answer, others[:4] # '私__行きます', 'が', ['を','に','て','から']
