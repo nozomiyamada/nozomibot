@@ -8,11 +8,13 @@ written in `Python 3.7 (Flask 1.1) + vue.js 2.6` and `MySQL` (AWS RDS), deployed
 
 Line ID : `@834majrs`
 
+[FB page](https://www.facebook.com/botnozomi)
+
 [Web Application : Faster Version (AWS)](https://www.nozomi.ml/)
 
 [Web Application : Stable Version (heroku)](https://nzmbot.herokuapp.com/)
 
-# Features of Line Bot
+# Features of Messenger Bot (Line & FB)
 ## linguistic information
 
 1. [พจนานุกรม (word dictionary)](#1-พจนานุกรม-word-dictionary)
