@@ -251,8 +251,10 @@ def handle_message(event):
 		line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
 	elif mode == 'JOSHI_START':
 		items = [
-			QuickReplyButton(action=PostbackAction(label="Kakujoshi 5 ข้อ", data="JOSHI_kaku5_0_0_")),
-			QuickReplyButton(action=PostbackAction(label="Kakujoshi 10 ข้อ", data="JOSHI_kaku10_0_0_"))
+			QuickReplyButton(action=PostbackAction(label="Kakujoshi 5 ข้อ", data="action=joshi&type=格助詞&num=5")),
+			QuickReplyButton(action=PostbackAction(label="10 ข้อ", data="action=joshi&type=格助詞&num=10")),
+			QuickReplyButton(action=PostbackAction(label="All joshi 5 ข้อ", data="action=joshi&type=all&num=5")),
+			QuickReplyButton(action=PostbackAction(label="All joshi 10 ข้อ", data="action=joshi&type=all&num=10"))
 		]
 		message = TextSendMessage(text="เลือกจำนวนข้อ", quick_reply=QuickReply(items=items))
 		line_bot_api.reply_message(event.reply_token, message)
@@ -262,10 +264,10 @@ def handle_message(event):
 
 @handler.add(PostbackEvent)
 def handle_postback(event):
-	postback = str(event.postback.data).strip()
-	if postback == 'richmenu_help':
+	postback = dict([x.split('=') for x in event.postback.data.split('&')]) # action=joshi&type=格助詞&num=5&Q=0&score=0
+	if postback['action'] == 'richmenu_help':
 		line_bot_api.reply_message(event.reply_token, TextSendMessage(text=DESCRIPTION))
-	elif postback.startswith('JOSHI_'):
+	elif postback['action'] == 'joshi':
 		text, labels, datas = get_postback(postback)
 		if labels != None:
 			items = [QuickReplyButton(action=PostbackAction(label=label, display_text=label, data=data)) for label, data in zip(labels, datas)]

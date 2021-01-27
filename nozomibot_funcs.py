@@ -279,32 +279,37 @@ def get_reply(text:str):
 	return MODE, reply
 
 
-def get_postback(postback:str): # return (text, labels:list, datas:list)
-	if postback.startswith('JOSHI_kaku'): # JOSHI_kaku10_3_2_を (question number, cum score, previous answer)
-		q_num = int(postback.split('_')[2])
-		score_now = int(postback.split('_')[3])
-		answer_before = postback.split('_')[4]
-		text, answer, others = joshi_quiz() # '秋田県__人が総理大臣になるのは初めてです。', 'の', ['を', 'より', 'で', 'と']
-		if answer_before == '': # Q1
+def get_postback(postback:dict): # {action:joshi, type:格助詞, num:5, Q:0, score:0} -> return (text, labels:list, datas:list)
+	if postback['action'] == 'joshi':
+		joshi_type = postback.get('type', '格助詞') 
+		max_num = int(postback.get('num', 10))
+		q_num = int(postback.get('Q', 0))
+		score = int(postback.get('score', 0))
+		kanji_level = postback.get('level', None) # '1', '2', '3'
+		answer_before = postback.get('answer', None)
+		if kanji_level == None: # before start Q1
+			datas = [
+				f'action=joshi&type={joshi_type}&num={max_num}&Q=0&score=0&level=1',
+				f'action=joshi&type={joshi_type}&num={max_num}&Q=0&score=0&level=2',
+				f'action=joshi&type={joshi_type}&num={max_num}&Q=0&score=0&level=3',
+				f'action=joshi&type={joshi_type}&num={max_num}&Q=0&score=0&level=4'
+			]
+			return 'เลือก Kanji Level', ['ง่าย','กราง','ยาก','ยากมาก'], datas
+		elif answer_before == None: # Q1
+			text, answer, others = joshi_quiz(kanji_level, joshi_type) # '秋田県__人が総理大臣になるのは初めてです。', 'の', ['を', 'より', 'で', 'と']
 			text = 'Q1: ' + text
 		else:
-			text = f'เฉลย {answer_before}\n\nQ{q_num+1}: ' + text
+			text, answer, others = joshi_quiz(kanji_level, joshi_type)
+			text = f'Q{q_num} เฉลย: {answer_before}\n\nQ{q_num+1}: ' + text
 		insert_i = random.randint(0,4)
 		others.insert(insert_i, answer) # ['を', 'より', 'で', 'と'] -> ['を', 'より', 'で', 'の', 'と']
-		if postback.startswith('JOSHI_kaku10'):
-			datas = [f'JOSHI_kaku10_{q_num+1}_{score_now}_{answer}'] * 5
-			datas[insert_i] = f'JOSHI_kaku10_{q_num+1}_{score_now+1}_{answer}'
-			if q_num < 10:
-				return text, others, datas
-			else:
-				return f'คะแนนของคุณ: {score_now}/10', None, None
-		elif postback.startswith('JOSHI_kaku5'):
-			datas = [f'JOSHI_kaku5_{q_num+1}_{score_now}_{answer}'] * 5
-			datas[insert_i] = f'JOSHI_kaku5_{q_num+1}_{score_now+1}_{answer}'
-			if q_num < 5:
-				return text, others, datas
-			else:
-				return f'คะแนนของคุณ: {score_now}/5', None, None
+		datas = [f'action=joshi_kaku&num={max_num}&Q={q_num+1}&score={score}&answer={answer}&level={kanji_level}'] * 5
+		datas[insert_i] = f'action=joshi_kaku&num={max_num}&Q={q_num+1}&score={score+1}&answer={answer}&level={kanji_level}' # correct answer
+		if q_num < max_num:
+			return text, others, datas
+		else:
+			return f'คะแนนของคุณ: {score}/{max_num}', None, None
+
 
 
 ################################################################################
@@ -616,17 +621,39 @@ def get_wiki(word):
 
 ##########  JOSHI QUIZ  ##########
 
-SENTS_EASY = open('data/short_sentence_easy.txt').read().splitlines()
-KAKUJOSHI = ['を','に','が','と','の','より','へ','から','で']
-def joshi_quiz(joshi_type="格助詞"):
-	sent = random.choice(SENTS_EASY)
+SENTS_EASY = pd.read_csv('data/short_sentence_easy.csv') # [[sent, sentruby, level],[],...]
+SENTS_NORMAL = pd.read_csv('data/short_sentence_normal.csv') # [[sent, sentruby, level],[],...]
+KAKUJOSHI = ['を','に','が','と','の','より','へ','から','で'] # 助詞-格助詞
+FUKUJOSHI = ['は','か','も','など','や','まで','たり','ぐらい','だけ'] # 助詞-副助詞 / 助詞-係助詞
+def joshi_quiz(level='1', joshi_type="格助詞"):
+	if level == '1':
+		df = SENTS_EASY[SENTS_EASY.level > 4.3]
+	elif level == '2':
+		df = SENTS_EASY[(SENTS_EASY.level <= 4.3) & (SENTS_EASY.level > 3.6)]
+	elif level == '3':
+		df = SENTS_EASY[SENTS_EASY.level < 3.6]
+	elif level == '4':
+		df = SENTS_NORMAL
+	sent = str(df.sample(1)['sent'].values[0])
 	tokens = tokenize(sent)
-	joshi_index = [i for i, token in enumerate(tokens) if joshi_type in token[4]] # index list of all joshi
+	if joshi_type == '格助詞': # make index list of selected joshi
+		joshi_index = [i for i, token in enumerate(tokens) if re.match(r'助詞-格助詞', token[4]) and token[0] in KAKUJOSHI] 
+	elif joshi_type == '副助詞':
+		joshi_index = [i for i, token in enumerate(tokens) if re.match(r'助詞-(副|係)助詞', token[4]) and token[0] in FUKUJOSHI]
+	elif joshi_type == 'all':
+		joshi_index = [i for i, token in enumerate(tokens) if re.match(r'助詞-(格|副|係)助詞', token[4]) and token[0] in FUKUJOSHI+KAKUJOSHI]
 	if joshi_index == []:
-		return joshi_quiz(joshi_type) # if not find, recurrsive
+		return joshi_quiz(level, joshi_type) # if not find, recurrsive
 	selected_index = random.choice(joshi_index) # select one joshi at random
 	answer = tokens[selected_index][0] # answer joshi
 	tokens[selected_index][0] = '___' # mask answer
-	others = [x for x in KAKUJOSHI if x != answer]
+	if joshi_type == '格助詞':
+		others = [x for x in KAKUJOSHI if x != answer]
+	elif joshi_type == '副助詞':
+		others = [x for x in FUKUJOSHI if x != answer]
+	elif joshi_type == 'all':
+		others = [x for x in KAKUJOSHI+FUKUJOSHI if x != answer]
+	if answer == 'は' and 'が' in others:
+		others.remove('が')
 	random.shuffle(others)
 	return ''.join([token[0] for token in tokens]), answer, others[:4] # '私__行きます', 'が', ['を','に','て','から']
