@@ -303,8 +303,8 @@ def get_postback(postback:dict): # {action:joshi, type:格助詞, num:5, Q:0, sc
 			text = f'Q{q_num} เฉลย: {answer_before}\n\nQ{q_num+1}: ' + text
 		insert_i = random.randint(0,4)
 		others.insert(insert_i, answer) # ['を', 'より', 'で', 'と'] -> ['を', 'より', 'で', 'の', 'と']
-		datas = [f'action=joshi_kaku&num={max_num}&Q={q_num+1}&score={score}&answer={answer}&level={kanji_level}'] * 5
-		datas[insert_i] = f'action=joshi_kaku&num={max_num}&Q={q_num+1}&score={score+1}&answer={answer}&level={kanji_level}' # correct answer
+		datas = [f'action=joshi&type={joshi_type}&num={max_num}&Q={q_num+1}&score={score}&answer={answer}&level={kanji_level}'] * 5
+		datas[insert_i] = f'action=joshi&type={joshi_type}&num={max_num}&Q={q_num+1}&score={score+1}&answer={answer}&level={kanji_level}' # correct answer
 		if q_num < max_num:
 			return text, others, datas
 		else:
