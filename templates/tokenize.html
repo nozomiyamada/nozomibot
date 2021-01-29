@@ -63,7 +63,7 @@
 									<th>品詞<br>ประเภทคำ</th>
 								</tr>
 								<tr v-for="row in result.tokens">
-									<td v-if="row[3].match('助')">{{ row[0] }}</td>
+									<td v-if="row[3].match('助|記号|特殊')">{{ row[0] }}</td>
 									<td v-else><a v-bind:href="row[2]" target="_blank">{{ row[0] }}</a></td>
 									<td>{{ row[1] }}</td>
 									<td>{{ row[2] }}</td>
@@ -79,7 +79,7 @@
 									<th>品詞<br>ประเภทคำ</th>
 								</tr>
 								<tr v-for="row in result.tokens2"> 
-									<td v-if="row[3].match('คำช่วย')">{{ row[0] }}</td>
+									<td v-if="row[3].match('คำช่วย|เครื่องหมาย')">{{ row[0] }}</td>
 									<td v-else><a v-bind:href="row[2]" target="_blank">{{ row[0] }}</a></td>
 									<td>{{ row[1] }}</td>
 									<td>{{ row[2] }}</td>

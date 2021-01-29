@@ -254,7 +254,7 @@ def handle_message(event):
 			QuickReplyButton(action=PostbackAction(label="Kakujoshi 5 ข้อ", data="action=joshi&type=格助詞&num=5")),
 			QuickReplyButton(action=PostbackAction(label="10 ข้อ", data="action=joshi&type=格助詞&num=10")),
 			QuickReplyButton(action=PostbackAction(label="All joshi 5 ข้อ", data="action=joshi&type=all&num=5")),
-			QuickReplyButton(action=PostbackAction(label="All joshi 10 ข้อ", data="action=joshi&type=all&num=10"))
+			QuickReplyButton(action=PostbackAction(label="10 ข้อ", data="action=joshi&type=all&num=10"))
 		]
 		message = TextSendMessage(text="เลือกจำนวนข้อ", quick_reply=QuickReply(items=items))
 		line_bot_api.reply_message(event.reply_token, message)
