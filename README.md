@@ -1,8 +1,7 @@
 # nozomibot (Last Update: 22 January 2021)
 
-Line messenger bot สำหรับผู้เรียนภาษาญี่ปุ่น
+Line/FB messenger bot และ web application สำหรับผู้เรียนภาษาญี่ปุ่น
 
-written in `Python 3.7 (Flask 1.1) + vue.js 2.6` and `MySQL` (AWS RDS), deployed to [`heroku`](https://www.heroku.com) and [`AWS`](https://aws.amazon.com/)
 
 ![834majrs](https://user-images.githubusercontent.com/44984892/79058885-92a1ac00-7c9d-11ea-8600-6ed00def18ca.png)
 
@@ -13,6 +12,8 @@ Line ID : `@834majrs`
 [Web Application : Faster Version (AWS)](https://www.nozomi.ml/)
 
 [Web Application : Stable Version (heroku)](https://nzmbot.herokuapp.com/)
+
+written in `Python 3.7 (Flask 1.1) + vue.js 2.6` and `MySQL` (AWS RDS), deployed to [`heroku`](https://www.heroku.com) and [`AWS`](https://aws.amazon.com/)
 
 # Features of Messenger Bot (Line & FB)
 ## linguistic information
