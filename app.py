@@ -174,7 +174,7 @@ def log_web(mode, text):
 line_bot_api = LineBotApi(CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(CHANNEL_SECRET)
 
-@app.route("/callback", methods=['POST'])
+@app.route("/line/callback", methods=['POST'])
 def callback():
 	# get X-Line-Signature header value
 	signature = request.headers['X-Line-Signature']
