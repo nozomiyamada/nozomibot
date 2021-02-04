@@ -666,5 +666,7 @@ def joshi_quiz(level='1', joshi_type="格助詞"):
 	### remove ambiguous choice
 	if answer in ['は', 'も'] and 'が' in others:
 		others.remove('が')
+	elif answer in ['が', 'も'] and 'は' in others:
+		others.remove('は')
 	random.shuffle(others)
 	return ''.join([token[0] for token in tokens]), answer, others[:4] # '私__行きます', 'が', ['を','に','て','から']
