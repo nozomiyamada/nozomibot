@@ -101,10 +101,9 @@ DESCRIPTION = """< วิธีใช้ >
 
 ---
 
-Nozomibot Web Version (มี 2 ลิงก์)
+Nozomibot Web Version
 
-https://www.nozomi.ml/
-https://nzmbot.herokuapp.com/"""
+https://www.nozomi.ml/"""
 
 def get_reply(text:str):
 	text = re.sub(r'[\s\t]+', ' ', text) # multiple spaces -> one half space
