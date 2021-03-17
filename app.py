@@ -149,6 +149,64 @@ def web_request():
 	return jsonify({'result':'success'})
 
 
+##### THAI2000 WORDS #####
+THAI2000 = pd.read_csv('data/thai2000.csv')
+@app.route('/thai2000', methods=['GET','POST'])
+def web_thai2000():
+	if request.method == 'GET':
+		return render_template('thai2000.html')
+	elif request.method == 'POST':
+		print(request.form)
+		page = int(request.form['page']) # "2" -> 2
+		df_temp = THAI2000[THAI2000['No.'] == page][['日本語','タイ語読み','タイ語文字']]
+		if request.form['shuffle'] == 'true':
+			df_temp = df_temp.sample(frac=1).reset_index(drop=True)
+		return jsonify({'result': df_temp.values.tolist()})
+
+
+##### ONOMATOPOEIA #####
+ONOMATO = pd.read_csv('data/onomato.csv')
+@app.route('/onomato', methods=['GET','POST'])
+def web_onomato():
+	if request.method == 'GET':
+		return render_template('onomato.html')
+	elif request.method == 'POST':
+		onomatotype = request.form['onomatotype'] # 'all', 'gion', 'gitai', 'gijou'
+		word = request.form['word'].strip()
+		df = ONOMATO.copy().fillna('-')[['タイプ','日本語','タイ語','sense']]
+		if onomatotype == 'gion':
+			df = df[df['タイプ']=='擬音']
+		elif onomatotype == 'gitai':
+			df = df[df['タイプ']=='擬態']
+		elif onomatotype == 'gijou':
+			df = df[df['タイプ']=='擬情']
+		if word != '':
+			df = df[(df['日本語'].str.contains(word)) | (df['タイ語'].str.contains(word)) | (df['sense'].str.contains(word))]
+		return jsonify({'result': df.values.tolist()})
+
+
+##### NHKTHAI #####
+NHKTHAI = pd.read_json('data/nhk.json')
+NHKTHAI['date'] = NHKTHAI.date.apply(lambda x: str(x).split(' ')[0])
+@app.route('/nhkthai', methods=['GET','POST'])
+def web_nhkthai():
+	if request.method == 'GET':
+		return render_template('nhkthai.html')
+	elif request.method == 'POST':
+		print(request.form)
+		year = request.form['year']
+		keyword = request.form['keyword'].strip()
+		if year != 'ALL':
+			df_temp = NHKTHAI[NHKTHAI.date.str.contains(year)]
+		else:
+			df_temp = NHKTHAI.copy()
+		if keyword != '':
+			df_temp = df_temp[(df_temp.headline.str.contains(keyword)) | (df_temp.article.str.contains(keyword))]
+			df_temp['article'] = df_temp.article.apply(lambda x: highlight(x, keyword))
+		df_temp = df_temp[['date','headline','article']]
+		return jsonify({'result': df_temp.values.tolist()})
+
+
 ##### SINGLE WORD SEARCH : SAME AS TOP PAGE #####
 @app.route('/<word>', methods=['GET'])
 def web_word(word):

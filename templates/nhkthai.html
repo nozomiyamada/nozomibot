@@ -1,0 +1,119 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<!-- NHKTHAI PAGE -->
+
+<script>
+	document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+	mode_nhkthai.classList.add('active');
+</script>
+
+<!-- INPUT % RESULT CONTAINER -->
+<div class="container" id="container_nhkthai">
+	<div class="row">
+		<div class="col-lg-12">
+
+			<!-- INPUT FORM -->
+			<div class="card">
+				<div class="card-body">
+					<h2>NHK WORLD THAI</h2>
+					<p>
+						NHK WORLD-JAPAN Thai -> <a href="https://www3.nhk.or.jp/nhkworld/th/news/" target="_blank">GO</a>
+					</p>
+					<div class="form-group" v-on:change="ajax_start()">
+						<div class="input-group mb-1">
+							<div class="input-group-prepend">
+								<span class="input-group-text">YEAR</span>
+							</div>
+							<select class="form-control" v-model="year">
+								<option value="ALL">&nbsp;&nbsp;ALL</option>
+								<option value="2019">&nbsp;&nbsp;2019</option>
+								<option value="2020">&nbsp;&nbsp;2020</option>
+								<option value="2021">&nbsp;&nbsp;2021</option>
+							</select>
+						</div>
+						<div class="input-group mb-4">
+							<div class="input-group-prepend">
+								<span class="input-group-text">KEYWORD</span>
+							</div>
+							<input type="text" class="form-control" v-model="keyword" placeholder=" optional">
+						</div>
+					</div>
+				</div>
+				<div class="card-footer" v-show="result != 0" style="display: none;">
+					<table class="table">
+						<tr>
+							<th>date</th>
+							<th>title</th>
+						</tr>
+						<tr v-for="(row, index) in result">
+							<td>{{ row[0] }}</td>
+							<td class="pointer" v-on:click="show_article($event, index)">{{ row[1] }}</td>
+						</tr>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- ARTICLE MODAL -->
+	<div class="modal fade" id="article_modal" tabindex="-1" role="dialog">
+		<div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h4 class="modal-title">{{ date }}<br>{{ headline }}</h4>
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <i class="fas fa-times"></i>
+          </button>
+				</div>
+				<div class="modal-body">
+					<p v-html="article"></p>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-danger btn-link h5" data-dismiss="modal">close</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+</div>
+<script>
+
+	var vue = new Vue({
+		el:'#container_nhkthai',
+		data:{
+			year: '',
+			keyword: '',
+			date: '',
+			headline: '',
+			article: '',
+			result: 0
+		},
+		methods: {
+			ajax_start: function(){
+				$.ajax({
+					data : {year: this.year, keyword: this.keyword},
+					type: "POST",
+					dataType: "json",
+					cache: false,
+					timeout: 5000,
+					url : "/nhkthai"
+				}).done(function(returnData){
+					vue.result = returnData.result;
+				}).fail(function(){
+					console.log('failed');
+				})
+			},
+			show_article: function(e, index){
+				this.date = this.result[index][0];
+				this.headline = this.result[index][1];
+				this.article = this.result[index][2];
+				$('#article_modal').modal('show');
+			}
+		}
+	})
+
+</script>
+
+
+{% endblock %}

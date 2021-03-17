@@ -13,7 +13,7 @@ tr, th{
 	font-weight: bold;
 }
 body{
-	font-family: 'Sarabun', 'M PLUS Rounded 1c', sans-serif;
+	font-family: 'Sarabun', 'M PLUS Rounded 1c', sans-serif, 'Times New Roman';
 	scroll-behavior: smooth;
 }
 td.vertical{

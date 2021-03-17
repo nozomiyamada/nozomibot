@@ -1,0 +1,167 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<!-- THAI2000 PAGE -->
+<style>
+	.ipa{font-family: 'Arial';}
+</style>
+<script>
+	document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+</script>
+
+<!-- INPUT % RESULT CONTAINER -->
+<div class="container" id="container_thai2000">
+	<div class="row">
+		<div class="col-lg-12">
+
+			<!-- INPUT FORM -->
+			<div class="card">
+				<div class="card-body">
+					<h2>タイ語基本単語</h2>
+					<a href="https://docs.google.com/spreadsheets/d/1beganfgdxQY0d2_aLEXM7cXPtkx8yKoJSHFZBHQkR1k/" target="_blank">Google Sheet</a>
+					<div class="form-group">
+						<div class="togglebutton text-primary" style="display: none;">
+							<label>
+								<input type="checkbox" v-model="shuffle" v-on:change="ajax_start()">
+								<span class="toggle"></span><span class="text-muted">シャッフル表示</span>
+							</label>
+						</div>
+						<select class="form-control h4" v-model="page" v-on:change="ajax_start()">
+							<option value="0" selected>ジャンルを選んでね</option>
+							<option value="1">1. 人やものをさす言葉</option>
+							<option value="2">2. たずねる言葉</option>
+							<option value="3">3. 数える言葉</option>
+							<option value="4">4. 大きな数を数える</option>
+							<option value="5">5. その他の数の数え方</option>
+							<option value="6">6. ー日の時間を表す</option>
+							<option value="7">7. 時刻の言い方</option>
+							<option value="8">8. 時を表すことば</option>
+							<option value="9">9. 日付と曜日と週</option>
+							<option value="10">10. 月の名前</option>
+							<option value="11">11. 今日・先週・来月</option>
+							<option value="12">12. 年と季節</option>
+							<option value="13">13. 位置と方向を知る</option>
+							<option value="14">14. 家族と呼び方</option>
+							<option value="15">15. 親戚と呼び方</option>
+							<option value="16">16. 周囲の人々</option>
+							<option value="17">17. 一日の生活</option>
+							<option value="18">18. いつもの動作</option>
+							<option value="19">19. 手足の動作</option>
+							<option value="20">20. 頭を働かせる</option>
+							<option value="21">21. 教室で</option>
+							<option value="22">22. 学校について</option>
+							<option value="23">23. 大学で</option>
+							<option value="24">24. タイ語を学ぶ</option>
+							<option value="25">25. 教室にあるもの</option>
+							<option value="26">26. 一生の出来事</option>
+							<option value="27">27. 身体の部分を表す言葉(1) 顔</option>
+							<option value="28">28. 身体の部分を表す言葉(2) 上半身</option>
+							<option value="29">29. 身体の部分を表す言葉(3) 下半身</option>
+							<option value="30">30. 全身の表情</option>
+							<option value="31">31. 生理現象</option>
+							<option value="32">32. 健康なからだ</option>
+							<option value="33">33. かたちをいうことば</option>
+							<option value="34">34. 状態をいうことば</option>
+							<option value="35">35. 今日の天気</option>
+							<option value="36">36. 地理をいうことば</option>
+							<option value="37">37. 動物を飼う</option>
+							<option value="38">38. 動物と虫</option>
+							<option value="39">39. 植物を育てる</option>
+							<option value="40">40. 住まいと建物</option>
+							<option value="41">41. 家の中</option>
+							<option value="42">42. 室内を整理する</option>
+							<option value="43">43. 家の仕事</option>
+							<option value="44">44. 家庭の電気製品</option>
+							<option value="45">45. 毎日の食事</option>
+							<option value="46">46. 台所にあるもの</option>
+							<option value="47">47. 料理を作る</option>
+							<option value="48">48. 料理の材料</option>
+							<option value="49">49. 調味料と味</option>
+							<option value="50">50. 身じたくをする</option>
+							<option value="51">51. 服を着る</option>
+							<option value="52">52. 下着とアクセサリー</option>
+							<option value="53">53. 裁縫</option>
+							<option value="54">54. 彩り</option>
+							<option value="55">55. 街へ出ましょう</option>
+							<option value="56">56. 駅で使う言葉</option>
+							<option value="57">57. 乗り物を利用する</option>
+							<option value="58">58. 車で走る</option>
+							<option value="59">59. 空港で使うことば</option>
+							<option value="60">60. 機内で使うことば</option>
+							<option value="61">61. ホテルに泊まる</option>
+							<option value="62">62. レストランで</option>
+							<option value="63">63. 果物とシーフード</option>
+							<option value="64">64. 何か飲み物でも</option>
+							<option value="65">65. お金と銀行</option>
+							<option value="66">66. 犯罪にあったら</option>
+							<option value="67">67. 買い物をする</option>
+							<option value="68">68. 郵便を出す</option>
+							<option value="69">69. 電話をかける</option>
+							<option value="70">70. 病院へ行く</option>
+							<option value="71">71. 病気を説明する</option>
+							<option value="72">72. 病気の名前</option>
+							<option value="73">73. 感情を表現する</option>
+							<option value="74">74. あなたの性格は</option>
+							<option value="75">75. 趣味は何ですか</option>
+							<option value="76">76. 芸術・芸能に親しむ</option>
+							<option value="77">77. スポーツが好き</option>
+							<option value="78">78. ラジオ・テレビ・新聞・雑誌</option>
+							<option value="79">79. 職場で使うことば</option>
+							<option value="80">80. いろいろな職業</option>
+							<option value="81">81. 政治に関する言葉</option>
+							<option value="82">82. 宗教について</option>
+							<option value="83">83. ミーティングで</option>
+							<option value="84">84. 産業の発展</option>
+							<option value="85">85. 文化と交流 </option>
+						</select>
+					</div>
+				</div>
+				<div class="card-footer" v-show="result != 0" style="display: none;">
+					<table class="table">
+						<tr>
+							<th></th>
+							<th>日本語</th>
+							<th>読み</th>
+							<th>タイ文字</th>
+						</tr>
+						<tr v-for="(row, index) in result">
+							<td>{{ index+1 }}</td>
+							<td>{{ row[0] }}</td>
+							<td class="ipa">{{ row[1] }}</td>
+							<td>{{ row[2] }}</td>
+						</tr>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+<script>
+
+	var vue = new Vue({
+		el:'#container_thai2000',
+		data:{
+			page: '0',
+			shuffle: false,
+			result: 0
+		},
+		methods: {
+			ajax_start: function(){
+				$.ajax({
+					data : {page: this.page, shuffle: this.shuffle},
+					type: "POST",
+					dataType: "json",
+					cache: false,
+					timeout: 3000,
+					url : "/thai2000"
+				}).done(function(returnData){
+					vue.result = returnData.result;
+				});
+			}
+		}
+	})
+
+</script>
+
+
+{% endblock %}

@@ -1,0 +1,109 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<!-- ONOMATOPOEIA PAGE -->
+
+<script>
+	document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+	mode_onomato.classList.add('active');
+</script>
+
+<!-- INPUT % RESULT CONTAINER -->
+<div class="container" id="container_onomato">
+	<div class="row">
+		<div class="col-lg-12">
+
+			<!-- INPUT FORM -->
+			<div class="card">
+				<div class="card-body">
+					<h2>オノマトペ検索 (beta version)</h2>
+					<p>オノマトペ (= สัทพจน์, onomatopoeia) คือคำที่เลียนแหล่งกำเนิดเสียง ซึ่งสามารถแบ่งได้เป็นสามแบบ ได้แก่
+						<ul>
+							<li>擬音語 (phonomime, mimic sound) : เสียงที่เลียนแบบเสียงจริงๆ เช่น <span class="red">コケコッコー</span> "เสียงร้องของไก่"</li>
+							<li>擬態語 (phenomime) : เสียงที่แสดงสภาพ เช่น <span class="red">シーン</span> "ความเงียบ"</li>
+							<li>擬情語 (psychomime) : เสียงที่แสดงความรู้สึก เช่น <span class="red">ドキドキ</span> "ความตื่นเต้น"</li>
+						</ul>
+						(Shibatani. 1990. <i>The Languages of Japan</i>.)<br>
+						กดลิงค์แล้วสามารถเซิร์ชใน twitter ได้
+					</p>
+					<div class="form-group" v-on:change="ajax_start()">
+						<div class="form-check form-check-radio form-check-inline">
+							<label class="form-check-label">
+								<input class="form-check-input" type="radio" name="inlineRadioOptions" v-model="onomatotype" value="all"> ALL
+								<span class="circle"><span class="check"></span></span>
+							</label>
+						</div>
+						<div class="form-check form-check-radio form-check-inline">
+							<label class="form-check-label">
+								<input class="form-check-input" type="radio" name="inlineRadioOptions" v-model="onomatotype" value="gion"> 擬音語
+								<span class="circle"><span class="check"></span></span>
+							</label>
+						</div>
+						<div class="form-check form-check-radio form-check-inline">
+							<label class="form-check-label">
+								<input class="form-check-input" type="radio" name="inlineRadioOptions" v-model="onomatotype" value="gitai"> 擬態語
+								<span class="circle"><span class="check"></span></span>
+							</label>
+						</div>
+						<div class="form-check form-check-radio form-check-inline">
+							<label class="form-check-label">
+								<input class="form-check-input" type="radio" name="inlineRadioOptions" v-model="onomatotype" value="gijou"> 擬情語
+								<span class="circle"><span class="check"></span></span>
+							</label>
+						</div>
+						<div class="form-group form-check-inline">
+							<input type="text" class="form-control" id="input_word" style="height:2.0em; padding-left:0.3em; padding-top:0px;" v-model="word" placeholder="keyword (option)">
+						</div>
+					</div>
+				</div>
+				<div class="card-footer" v-show="result != 0" style="display: none;">
+					<table class="table" style="table-layout: fixed;">
+						<tr>
+							<th v-show="onomatotype == 'all'" style="width: 4em">type</th>
+							<th>JP</th>
+							<th>TH</th>
+							<th>sense</th>
+						</tr>
+						<tr v-for="(row, index) in result">
+							<td v-show="onomatotype == 'all'">{{ row[0] }}</td>
+							<td><a v-bind:href="'https://twitter.com/search?f=live&q=' + row[1]" target="_blank">{{row[1]}}</a></td>
+							<td><a v-bind:href="'https://twitter.com/search?f=live&q=' + row[2]" target="_blank">{{row[2]}}</a></td>
+							<td>{{ row[3] }}</td>
+						</tr>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+<script>
+
+	var vue = new Vue({
+		el:'#container_onomato',
+		data:{
+			onomatotype: '',
+			word: '',
+			result: 0
+		},
+		methods: {
+			ajax_start: function(){
+				$.ajax({
+					data : {onomatotype: this.onomatotype, word: this.word},
+					type: "POST",
+					dataType: "json",
+					cache: false,
+					timeout: 5000,
+					url : "/onomato"
+				}).done(function(returnData){
+					vue.result = returnData.result;
+				}).fail(function(){
+					console.log('failed');
+				})
+			}
+		}
+	})
+
+</script>
+
+
+{% endblock %}

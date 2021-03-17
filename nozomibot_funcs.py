@@ -97,6 +97,9 @@ DESCRIPTION = """< วิธีใช้ >
 พิมพ์: วิกิ (space) คำ
 เช่น "วิกิ バンコク"
 
+11. Joshi Quiz 
+พิมพ์: "じょしテスト" "じょしクイズ" 
+
 หากพบข้อผิดพลาดหรือ bug ต่างๆ กรุณาแจ้งให้ทราบด้วยการพิมพ์ "feedback" เว้นวรรค แล้วตามด้วยข้อความของคุณ เช่น "feedback พบคำที่สะกดผิดครับ"
 
 ---
@@ -141,7 +144,7 @@ def get_reply(text:str):
 	elif len(text.split(' ')) > 1 and not \
 		re.match(r'(help|使い方|วิธีใช้|ใช้ยังไง|ヘルプ|分けて|切って|token(ize)?|ตัด|活用|conj(ugate)?|ผัน(รูป)?|อ่าน(ว่า)?|読み(方)?|โรมัน|ローマ字|roman|漢字|คันจิ|kanji|accent|アクセント|NHK|corpus|例文|ตัวอย่าง|twitter|tweet|ツイッター|ツイート|ทวีต|วิกิ|wiki|ウィキ|สวัสดี|สบายดีไหม|สบายดีมั้ย|หวัดดี|jojo|giogio|ジョジョ|โจโจ้|feedback|พี่โน)', text, flags=re.I):
 		MODE = 'EROOR'
-	elif re.match(r'(助詞|じょし)(クイズ|テスト|くいず|てすと)', text):
+	elif re.match(r'(助詞|じょし)(クイズ|テスト|くいず|てすと)', text) or re.match(r'joshi', text, flags=re.I):
 		MODE = 'JOSHI_START'
 	elif len(text) < 40:
 		MODE = '1.DICT'
@@ -306,8 +309,11 @@ def get_postback(postback:dict): # {action:joshi, type:格助詞, num:5, Q:0, sc
 		datas[insert_i] = f'action=joshi&type={joshi_type}&num={max_num}&Q={q_num+1}&score={score+1}&answer={answer}&level={kanji_level}' # correct answer
 		if q_num < max_num:
 			return text, others, datas
-		else:
-			return f'Q{q_num} เฉลย: {answer_before}\n\nคะแนนของคุณ: {score}/{max_num}', None, None
+		else: # result
+			if score == max_num:
+				return f'Q{q_num} เฉลย: {answer_before}\n\nคะแนนของคุณ: {score}/{max_num}\nおめでとうございます！', None, None
+			else:
+				return f'Q{q_num} เฉลย: {answer_before}\n\nคะแนนของคุณ: {score}/{max_num}\nまたがんばって下さい！', None, None
 
 
 
