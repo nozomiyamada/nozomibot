@@ -1,4 +1,4 @@
-# nozomibot (Last Update: 22 January 2021)
+# nozomibot (Last Update: 17 March 2021)
 
 Line/FB messenger bot และ web application สำหรับผู้เรียนภาษาญี่ปุ่น
 
