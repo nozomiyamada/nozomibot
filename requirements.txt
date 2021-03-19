@@ -26,6 +26,6 @@ six==1.15.0
 soupsieve==2.1
 tqdm==4.56.0
 unidic-lite==1.0.7
-urllib3==1.26.2
+urllib3==1.26.3
 wasabi==0.8.0
 Werkzeug==1.0.1
