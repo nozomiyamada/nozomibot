@@ -9,7 +9,7 @@ future==0.18.2
 gunicorn==20.0.4
 idna==2.10
 itsdangerous==1.1.0
-Jinja2==2.11.2
+Jinja2==2.11.3
 line-bot-sdk==1.18.0
 MarkupSafe==1.1.1
 mecab-python3==1.0.3
