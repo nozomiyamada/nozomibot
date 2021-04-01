@@ -1,0 +1,61 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<!-- TOKENIZE PAGE -->
+<script>
+	document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+</script>
+<!-- LOAD THAIWORD DATA -->
+<script src="static/thaitest.js" type="text/javascript"></script>
+
+<!-- INPUT % RESULT CONTAINER -->
+<div class="container" id="container_thaitest">
+	<div class="row">
+		<div class="col-lg-12">
+			<!-- INPUT FORM -->
+			<div class="card">
+				<div class="card-body">
+					<h2>タイ語テスト</h2>
+					<button class="btn btn-info btn-round" v-on:click="next_word();">next</button>
+					<p class="h3">{{japanese}}</p>
+					<p class="h3 text-danger" style="visibility:hidden;" id="thaiword">{{thai}}</p>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<script>
+
+	var vue = new Vue({
+		el:'#container_thaitest',
+		data:{
+			thai: '',
+			japanese: '',
+			show_answer: true
+		},
+		methods:{
+			next_word: function(){
+				if(this.show_answer==false){
+					this.show_answer = true;
+					thaiword.style.visibility = '';
+				}else{
+					this.show_answer = false;
+					thaiword.style.visibility = 'hidden';
+					index = Math.floor(Math.random() * THAIWORDS.length);
+					this.thai = THAIWORDS[index][1];
+					this.japanese = THAIWORDS[index][0];
+				}
+			}
+		}
+	})
+
+	function press_enter(){
+		console.log(1);
+	}
+
+</script>
+
+
+
+{% endblock %}

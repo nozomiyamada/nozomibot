@@ -35,3 +35,7 @@ td.vertical{
 	color: red!important;
 	font-size: 1.2em;
 }
+.vowel{
+	text-transform: none!important;
+	font-family: sans-serif!important;
+}

@@ -207,6 +207,28 @@ def web_nhkthai():
 		return jsonify({'result': df_temp.values.tolist()})
 
 
+##### KANA #####
+@app.route('/kana', methods=['GET','POST'])
+def web_kana():
+	if request.method == 'GET':
+		return render_template('kana.html')
+	elif request.method == 'POST':
+		input_text = request.form['input'].split('\n')
+		kanatype = request.form['kanatype']
+		if kanatype == 'hiragana':
+			output = '\n'.join([yomikata(line, katakana=False) for line in input_text])
+		else:
+			output = '\n'.join([yomikata(line, katakana=True) for line in input_text])
+		return jsonify(output)
+
+
+##### THAIWORD TEST #####
+@app.route('/thaitest', methods=['GET','POST'])
+def web_thaitest():
+	if request.method == 'GET':
+		return render_template('thaitest.html')
+
+
 ##### SINGLE WORD SEARCH : SAME AS TOP PAGE #####
 @app.route('/<word>', methods=['GET'])
 def web_word(word):

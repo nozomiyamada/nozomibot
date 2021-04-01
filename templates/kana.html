@@ -1,0 +1,176 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<!-- TOKENIZE PAGE -->
+<script>
+	document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+	mode_kana.classList.add('active');
+</script>
+
+<!-- INPUT % RESULT CONTAINER -->
+<div class="container" id="container_tokenize">
+	<div class="row">
+		<div class="col-lg-12">
+			<!-- INPUT FORM -->
+			<div class="card">
+				<div class="card-body">
+					<h2>かな変換</h2>
+					<form onsubmit="return false; ajax_kana();">
+						<div class="form-row" v-on:change="ajax_start()">
+							<div class="form-check form-check-radio form-check-inline">
+								<label class="form-check-label">
+									<input class="form-check-input" type="radio" name="inlineRadioOptions" v-model="kanatype" value="hiragana"> ひらがな
+									<span class="circle"><span class="check"></span></span>
+								</label>
+							</div>
+							<div class="form-check form-check-radio form-check-inline">
+								<label class="form-check-label">
+									<input class="form-check-input" type="radio" name="inlineRadioOptions" v-model="kanatype" value="katakana"> カタカナ
+									<span class="circle"><span class="check"></span></span>
+								</label>
+							</div>
+						</div>
+						<div class="form-row">
+							<div class="col">
+								<button type="submit" class="btn btn-primary btn-round" onclick="ajax_kana();">convert</button>
+								<button class="btn btn-round" v-on:click="reset();">clear</button>
+							</div>
+							<div class="col">
+								<button class="btn btn-success btn-round" v-on:click="copy();">copy</button>
+							</div>
+						</div>
+						<div class="form-row">
+							<div class="col">
+								<textarea type="text" class="form-control h4" rows="3" id="input_text" v-model="input" placeholder="文章"></textarea>
+							</div>
+							<div class="col">
+								<textarea type="text" class="form-control h4" rows="3" id="output_text" v-model="output" placeholder="かな"></textarea>
+							</div>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="container">
+	<div class="row">
+		<div class="col-lg-12">
+			<div class="card">
+				<div class="card-body">
+					<h2>発音記号入力</h2>
+					<input class="form-control h5" type="text" id="thaitext" autocomplete="off" style="font-family: sans-serif!important;">
+					<div>
+						<button type="button" class="btn btn-primary vowel h5" onclick="vowel('ɯ');">ɯ</button>
+						<button type="button" class="btn btn-primary vowel h5" onclick="vowel('ɛ');">ɛ</button>
+						<button type="button" class="btn btn-primary vowel h5" onclick="vowel('ɔ');">ɔ</button>
+						<button type="button" class="btn btn-primary vowel h5" onclick="vowel('ə');">ə</button>
+						<button type="button" class="btn btn-danger h5" onclick="copy_to_clickboard();">copy</button>
+					</div>
+					<div>
+						<button type="button" class="btn btn-success vowel h5" onclick="tone(2);">̀2</button>
+						<button type="button" class="btn btn-success vowel h5" onclick="tone(3);"> ̂3</button>
+						<button type="button" class="btn btn-success vowel h5" onclick="tone(4);">́4</button>
+						<button type="button" class="btn btn-success vowel h5" onclick="tone(5);">ˇ5</button>
+						<button type="button" class="btn btn-outline-danger h5" onclick="thaitext.value='';thaitext.focus();">clear</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div>
+	<textarea id="hiddenarea" style="display:none;"></textarea>
+</div>
+
+<script>
+
+	var vue = new Vue({
+		el:'#container_tokenize',
+		data:{
+			input: '',
+			output: '',
+			kanatype: "hiragana"
+		},
+		methods:{
+			reset: function(){
+				this.input = '';
+				this.output = '';
+				this.kanatype = 'hiragana',
+				input_text.focus();
+			},
+			copy: function(){
+				document.getElementById("output_text").select();
+				document.execCommand("Copy");
+			}
+		}
+	})
+
+	function ajax_kana(){
+		if(vue.input.trim()==''){input_text.focus(); return;}
+		// $('#searchingModal').modal('show');
+		$.ajax({
+			data : {input: vue.input, kanatype: vue.kanatype},
+			type: "POST",
+			dataType: "json",
+			cache: false,
+			timeout: 3000,
+			url : "/kana"
+		}).done(function(returnData){
+			vue.output = returnData;
+		});
+	}
+
+	function vowel(char){
+		text = document.getElementById('thaitext');
+		before_text = text.value.substr(0, text.selectionStart); // text before cursor
+		final_char = before_text.slice(-1); // final character of before
+		after_text = text.value.substr(text.selectionStart); // text after cursor
+	}
+
+	function tone(tone_num){
+		text = document.getElementById('thaitext');
+		if(text.value.length < 1){
+			text.focus();
+			return;
+		}
+		before_text = text.value.substr(0, text.selectionStart); // text before cursor
+		final_char = before_text.slice(-1); // final character of before
+		after_text = text.value.substr(text.selectionStart); // text after cursor
+		switch (tone_num) {
+			case 2:
+					dic = {"a":"à","i":"ì","ɯ":"ɯ̀","u":"ù","e":"è","ɛ":"ɛ̀","o":"ò","ɔ":"ɔ̀","ə":"ə̀"};
+					break;
+			case 3:
+					dic = {"a":"â","i":"î","ɯ":"ɯ̂","u":"û","e":"ê","ɛ":"ɛ̂","o":"ô","ɔ":"ɔ̂","ə":"ə̂"};
+					break;
+			case 4:
+					dic = {"a":"á","i":"í","ɯ":"ɯ́","u":"ú","e":"é","ɛ":"ɛ́","o":"ó","ɔ":"ɔ́","ə":"ə́"};
+					break;
+			case 5:
+					dic = {"a":"ǎ","i":"ǐ","ɯ":"ɯ̌","u":"ǔ","e":"ě","ɛ":"ɛ̌","o":"ǒ","ɔ":"ɔ̌","ə":"ə̌"};
+					break;
+    }
+
+		if('aiɯueɛoɔə'.includes(final_char)){
+			text.value = before_text.slice(0,-1) + dic[final_char] + after_text;
+		}
+		text.focus();
+	}
+
+	function copy_to_clickboard(){
+		hiddenarea.style.display = '';
+		hiddenarea.value = thaitext.value;
+		hiddenarea.select();
+		document.execCommand("Copy");
+		hiddenarea.style.display = 'none';
+		thaitext.focus();
+	}
+
+</script>
+
+
+
+{% endblock %}
