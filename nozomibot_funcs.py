@@ -1,5 +1,6 @@
 import re, requests, json, os, random, csv, time, urllib.parse, mysql.connector
 import pandas as pd
+import numpy as np
 pd.set_option('mode.chained_assignment', None) # make warning invisible
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta, timezone
@@ -10,11 +11,11 @@ from JpProcessing import *
 from dotenv import load_dotenv
 load_dotenv()
 
-### LINE BOT
+# FOR LINE BOT
 CHANNEL_ACCESS_TOKEN = os.environ["CHANNEL_ACCESS_TOKEN"]
 CHANNEL_SECRET = os.environ["CHANNEL_SECRET"]
 
-### FB BOT
+# FOR FB BOT
 FB_ACCESS_TOKEN = os.environ["FB_ACCESS_TOKEN"]
 FB_VERIFY_TOKEN = os.environ["FB_VERIFY_TOKEN"]
 
@@ -24,16 +25,17 @@ SQL_PASSWORD = os.environ["SQL_PASSWORD"]
 
 
 ##### CONNECT SQL FUNCTION #####
-def connect_sql(database:str):
+def connect_sql(database_name:str):
 	config = {'user': SQL_USERNAME,
 		'password': SQL_PASSWORD,
 		'host': SQL_HOSTNAME,
-		'database': database}
+		'database': database_name}
 	con = mysql.connector.connect(**config)
 	cursor = con.cursor()
 	return con, cursor 
 
-##### FUNCTION TO FILL SPACE FOR LINE OUTPUT #####
+
+##### FUNCTION TO FILL SPACES FOR LINE OUTPUT #####
 def toNchr(morph:str, n=3) -> str:
 	"""
 	function for adjusting result columns (for Linebot)
@@ -45,12 +47,18 @@ def toNchr(morph:str, n=3) -> str:
 	"""
 	return morph + (n-len(morph)) * '　'
 
+
+##### FUNCTION TO GET CURRENT TIME #####
 def get_time_now():
+	"""
+	check OS time, return current time as string "YYYY-MM-DD hh:mm:ss"
+	"""
 	tz = time.tzname[0]
 	if tz == 'UTC': # on EC2
 		return str(datetime.now()+timedelta(hours=7)).split('.')[0]
 	else: # on Local
 		return str(datetime.now()).split('.')[0]
+
 
 ################################################################################
 ###  NOZOMIBOT MESSENGER CORE 
@@ -74,7 +82,7 @@ DESCRIPTION = """< วิธีใช้ >
 พิมพ์: อ่าน (space) ประโยค
 เช่น "อ่าน 昨日NHKを見ましたか"
 
-5.  พจนานุกรมคันจิ
+5. พจนานุกรมคันจิ
 พิมพ์: คันจิ (space) คันจิตัวเดียว
 เช่น "คันจิ 望"
 
@@ -100,13 +108,19 @@ DESCRIPTION = """< วิธีใช้ >
 11. Joshi Quiz 
 พิมพ์: "じょしテスト" "じょしクイズ" 
 
+12. แนะนำร้านราเม็ง
+พิมพ์: ราเม็ง (จำนวนร้าน)
+เช่น  "ราเม็ง 3"
+
 หากพบข้อผิดพลาดหรือ bug ต่างๆ กรุณาแจ้งให้ทราบด้วยการพิมพ์ "feedback" เว้นวรรค แล้วตามด้วยข้อความของคุณ เช่น "feedback พบคำที่สะกดผิดครับ"
 
----
+-----
 
 Nozomibot Web Version
 
 https://www.nozomi.ml/"""
+
+
 
 def get_reply(text:str):
 	text = re.sub(r'[\s\t]+', ' ', text) # multiple spaces -> one half space
@@ -139,7 +153,11 @@ def get_reply(text:str):
 		MODE = 'JOJO'
 	elif re.match(r'feedback', text, flags=re.I):
 		MODE = 'FEEDBACK'
-	elif re.search(r'พี่โน|โนโซมิ', text):
+	elif re.search(r'(กิน|ทาน|แดก)(อะ)?ไรดี', text) or re.search(r'(今日の|きょうの)(朝|昼|夜|夕)?(ごはん|飯|ご飯|食)(は|を)?(何|何がいい|何にする|オススメ|教えて)?', text):
+		MODE = 'THAIMENU'
+	elif re.match(r'(อยาก)?(ไป)?(แนะนำ|กิน|ทาน|แดก|หิว)? ?(ร้าน)?(ramen|ราเม็?[นง]|ラーメン)', text, flags=re.I):
+		MODE = 'RAMEN'
+	elif re.search(r'พี่โน|โนโซมิ|ピーノー', text):
 		MODE = 'P-NO'
 	elif len(text.split(' ')) > 1 and not \
 		re.match(r'(help|使い方|วิธีใช้|ใช้ยังไง|ヘルプ|分けて|切って|token(ize)?|ตัด|活用|conj(ugate)?|ผัน(รูป)?|อ่าน(ว่า)?|読み(方)?|โรมัน|ローマ字|roman|漢字|คันจิ|kanji|accent|アクセント|NHK|corpus|例文|ตัวอย่าง|twitter|tweet|ツイッター|ツイート|ทวีต|วิกิ|wiki|ウィキ|สวัสดี|สบายดีไหม|สบายดีมั้ย|หวัดดี|jojo|giogio|ジョジョ|โจโจ้|feedback|พี่โน)', text, flags=re.I):
@@ -267,8 +285,58 @@ def get_reply(text:str):
 		reply = 'ขอบคุณมากที่ส่ง feedback และช่วยพัฒนาระบบครับ❤️'
 
 	elif MODE == 'P-NO':
-		reply = random.choice(['พี่โนเป็นคนสุดหล่อ','พี่โนเป็นคนใจดีสุดๆ','พี่โนเป็นคนสุดยอด','พี่โนชอบสเวนเซ่น','พี่โนชอบกินก๋วยเตี๋ยวเรือ','พี่โนเป็นทาสแมว','พี่โนกักตัวอยู่่','เลี้ยงข้าวพี่โนหน่อย','พี่โนชอบโจโจ้','ราเม็งญี่ปุ่นต้องเค็มๆ','ช่วงนี้อ้วนขึ้น','นกไปแล้ว พี่โนกำลังเศร้าอยู่'])
+		reply = random.choice(['พี่โนเป็นคนสุดหล่อ','พี่โนเป็นคนใจดีสุดๆ','พี่โนเป็นคนสุดยอด','พี่โนชอบสเวนเซ่น','พี่โนชอบกินก๋วยเตี๋ยวเรือ','พี่โนเป็นทาสแมว','พี่โนกักตัวอยู่','เลี้ยงข้าวพี่โนหน่อย','พี่โนชอบโจโจ้','ราเม็งญี่ปุ่นต้องเค็มๆ','ช่วงนี้อ้วนขึ้น','นกไปแล้ว พี่โนกำลังเศร้าอยู่', 'พี่โนติดคลับเฮาส์',''])
 	
+	elif MODE == 'THAIMENU':
+		reply = get_thaimenu(text)
+
+	elif MODE == 'RAMEN':
+		try:
+			num = int(text.split(' ')[1]) # the num of ramen stores to recommend
+		except:
+			num = 1
+		if num > 10:
+			num = 10  # maximum = 10 shops
+
+		choices = [
+			('Mensho Tokyo (พร้อมพงษ์)', "https://www.wongnai.com/restaurants/368662tj-mensho-tokyo", "https://www.facebook.com/menshotokyobkk"),
+			('Menya Itto (ชิดลม)', "https://www.wongnai.com/restaurants/282112Pa-menya-itto-โรงแรมเอราวัณ", "http://www.menyaittobkk.com/our-menu/"),
+			('Shugetsu (ทองหล่อ)', "https://www.wongnai.com/restaurants/377738AA-shugetsu-ramen-the-49-terrace", "https://www.facebook.com/shugetsu.th/"),
+			('Menya Kouji (ทองหล่อ)', "https://www.wongnai.com/restaurants/295798TZ-menya-kouji", "https://www.facebook.com/menyakouji/"),
+			('Bankara (Paragon, Iconsiam, พร้อมพงษ์)', "https://www.wongnai.com/restaurants/142841RA-bankara-ramen-siam-paragon", "https://www.facebook.com/BankaraRamen/"),
+			('Mokkori (สีลม)', "https://www.wongnai.com/restaurants/3570LW-sendai-ramen-mokkori-สีลม", "https://www.facebook.com/mokkorisilom"),
+			('Wakyu (ทองหล่อ)', "https://www.wongnai.com/restaurants/289152NU-ramen-wakyu-ramen-wakyu", "https://www.facebook.com/RamenWakyu/"),
+			('Tsuta (CTW)', "https://www.wongnai.com/restaurants/483459Rf-tsuta-centralworld", "https://tsuta.com/"),
+			('Santouka (บางนา)', "https://www.wongnai.com/restaurants/379338ZP-santouka-central-bangna", "https://www.facebook.com/Ramen-Santouka-Thailand-226872230787068/"),
+			('Tonchin (ชิดลม)', "https://www.wongnai.com/restaurants/611590Sa-tonchin-ramen-เมอร์คิวรี่-วิลล์", "https://www.facebook.com/tonchinth/"),
+			('Shindo (นครปฐม)', "https://www.wongnai.com/restaurants/281275LL-shindō-ramen-新道ラーメン", "https://www.facebook.com/ShindoRamen/"),
+			('Tsukemen Jo (อโศก, เอามัย)', "https://www.wongnai.com/restaurants/217187kW-tsukemen-jo-ekamai", "https://www.samurai-foods.com/"),
+			('69menbkk (ทองหล่อ)', "https://www.wongnai.com/restaurants/741749ao-69menbkk", "https://www.facebook.com/69menbkk"),
+			('Nanase (พร้อมพงษ์, ทองหล่อ)', "https://www.wongnai.com/restaurants/448324Jo-nanase-ramen-thonglor", "https://www.facebook.com/Nanase.Ramen"),
+			('Ikkousha (ทองหล่อ)', "https://www.wongnai.com/restaurants/247128sM-ikkousha-ramen-ทองหล่อ", "https://www.facebook.com/IkkoushaThailand"),
+			('Hideya (พระโขนง)', "https://www.wongnai.com/restaurants/iekeihideya", "https://www.facebook.com/iekeihideya/"),
+			('Misawa (พร้อมพงษ์)', "https://www.wongnai.com/restaurants/227260Xs-ramen-misawa-พร้อมพงษ์", "https://www.facebook.com/RamenMisawaBangkok"),
+			('Washin (สีลม)', "https://www.wongnai.com/restaurants/712475DF-washin-ramen", "https://www.facebook.com/Washin-Ramen-101381255112438"),
+			('Fujiyama Go Go (พร้อมพงษ์, เอกมัย, พระโขนง)', "https://www.wongnai.com/restaurants/311075Mb-fujiyama-go-go-biohouse", "https://www.facebook.com/fujiyamagogo"),
+			('Nojiya (ทองหล่อ)', "https://www.wongnai.com/restaurants/184963dz-hokkaido-ramen-yushi-yamagata-ramen-nojiya", "https://www.facebook.com/profile.php?id=100014818600188"),
+			('Ajisai (อโศก, ทองหล่อ)', "https://www.wongnai.com/restaurants/151169AG-ramen-ajisai-อาจิไซ-ราเมง-สุขุมวิท-23", "https://www.facebook.com/ramenajisai.at.asok"),
+			('Umauma (อโศก)', "https://www.wongnai.com/restaurants/340082qU-uma-uma", "https://www.facebook.com/Umaumathailand"),
+			('Kyushu Jangara (เพลินจิต, ทองหล่อ, วัชรพล)', "https://www.wongnai.com/restaurants/828853ya-kyushu-jangara-ramen-เอท-ทองหล่อ", "http://www.kyushujangarathailand.com/th/index.php"),
+			('Taishoken (ทองหล่อ)', "https://www.wongnai.com/restaurants/215404kX-taishoken-ramen", "https://taishokenbkk.com/"),
+			('Uchidaya (สีลม, พร้อมพงษ์)', "https://www.wongnai.com/restaurants/28125Ug-uchidaya-ramen-ธนิยะ", "https://www.facebook.com/uchidayaramen/"),
+			('Nantsuttei (Paragon)', "https://www.wongnai.com/restaurants/139875ju-nantsuttei-ramen-siam-paragon", "https://www.facebook.com/NantsutteiThailand/"),
+			('Iroha Ramen (บางนา)', "https://www.wongnai.com/restaurants/348695ao-iroha-ramen-izakaya-mega-bangna", "https://www.facebook.com/iroharamenizakaya/"),
+			('Tonkotsu Kazan (Siam Center, อโศก)', "https://www.wongnai.com/restaurants/395016Fo-tonkotsu-kazan-ramen-สยามเซ็นเตอร์", "https://tonkotsukazan.com/"),
+			('Misoya Ramen (Emquatier)', "https://www.wongnai.com/restaurants/191598zH-misoya-ramen-emquartier-7-floor-helix-zone-อาคาร-a", "https://www.facebook.com/misoyaBKK/"),
+			('Chita Yutakatei (พร้อมพงษ์)', "https://www.wongnai.com/restaurants/132344sl-chita-yutakatei-ra-men-restaurant"),
+			('Ichiban Ramen (พร้อมพงษ์)', "https://www.wongnai.com/restaurants/4523dz-ichiban-ramen"),
+			('Menya Yamato (ทองหล่อ)', "https://www.wongnai.com/restaurants/265456vx-menya-yamato-bkk"),
+			('Bishamon (พระโขนง)', "https://www.wongnai.com/restaurants/17197XO-bishamon", "https://www.facebook.com/BishamonThailand"),
+			('Lust Ramen (ช่องนนทรี, Stadium One)', "https://www.wongnai.com/restaurants/601879xw-lust-ramen-%E0%B8%AA%E0%B8%B5%E0%B8%A5%E0%B8%A1", "https://www.facebook.com/lustramen.th/")
+		]
+		choiced = np.random.choice(choices, num)
+		reply = 'แนะนำร้านนี้ครับ\n\n\n' + '\n\n\n'.join(['\n\n'.join(shop) for shop in choiced])
+
 	elif MODE == 'EROOR':
 		reply = "น่าจะใช้ผิดครับ พิมพ์ว่า help หรือกดเมนูด้านล่างจะแสดงวิธีใช้"
 
@@ -589,8 +657,23 @@ def get_nhkeasy():
 	row = NHKEASY_DATA.iloc[r]
 	return row['date'], row['title'], row['article']
 
-##########  WIKI SEARCH  ############
+##########  GET THAI MENU ##########
+THAIMENU = pd.read_csv('data/thaimenu.csv')
+def get_thaimenu(text):
+	try:
+		num = int(text.split(' ')[1]) # the num of ramen stores to recommend
+		num = min([num, 10]) # maximum = 10 menu
+	except:
+		num = 1
+	if random.random() < 0.15:
+		reply = random.choice(["ระวังอ้วนขึ้นนะ ไม่กินดีกว่า","จะกินอีกแล้วเหรอ","เพิ่งกินไปไม่ใช่เหรอ","หิวอีกแล้วเหรอ","กินไม่หยุดเลยนะ","กินทั้งวันเลยเหรอ","ยังไม่ต้องกินก็ได้นะ"])
+	elif get_time_now().split(' ')[-1][:2] in ['21','22','23','00','01','02'] and random.random() > 0.7:
+		reply = random.choice(["ดึกแล้ว ไม่กินดีกว่า", "กินเวลานี้จะดีเหรอ", "ดึกแล้ว นอนเถอะ"])
+	else:
+		reply = '\n'.join(np.random.choice(THAIMENU['menu'], num))
+	return reply
 
+##########  WIKI SEARCH  ############
 def remove_tag(text):
 	text = re.sub(r'</?.+?>', '', text)
 	text = re.sub(r'&#91;.+?&#93;', '', text)

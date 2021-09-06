@@ -124,10 +124,20 @@
 	}
 
 	function vowel(char){
-		text = document.getElementById('thaitext');
-		before_text = text.value.substr(0, text.selectionStart); // text before cursor
-		final_char = before_text.slice(-1); // final character of before
-		after_text = text.value.substr(text.selectionStart); // text after cursor
+		elem = document.getElementById('thaitext');
+		cursor = elem.selectionStart; // cursor position
+		is_active = document.activeElement == elem;
+		if(is_active == false){
+			elem.value += char;
+		}
+		else if(cursor == 0){
+			elem.value = char + elem.value;
+		}else{
+			before_text = elem.value.substr(0, cursor); // text before cursor
+			after_text = elem.value.substr(cursor); // text after cursor
+			elem.value = before_text + char + after_text;
+		}
+		elem.focus();
 	}
 
 	function tone(tone_num){

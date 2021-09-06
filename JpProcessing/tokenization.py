@@ -1,6 +1,6 @@
 import MeCab, re
 from JpProcessing.characters import kata2hira, is_only_kana, is_hiragana
-tagger = MeCab.Tagger()
+tagger = MeCab.Tagger() # instantiate tokenizer
 
 def clean(text:str):
 	text = re.sub(r'[“”„]', '"', text) # convert double quotations into "
